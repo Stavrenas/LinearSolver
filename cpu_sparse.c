@@ -7,7 +7,7 @@
 #include "utilities.h"
 #include "read.h"
 
-int main(int argc, char** argv)
+int main1(int argc, char** argv)
 {
 
     Matrix *A = (Matrix *)malloc(sizeof(Matrix));
@@ -61,4 +61,9 @@ int main(int argc, char** argv)
         // else
         //     printf("Solution is False\n");
     }
+}
+
+int main(){
+
+    generateMMMatrix("Test.mtx",10,10);
 }

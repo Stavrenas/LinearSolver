@@ -2,9 +2,9 @@
 #define READ_H
 #include "types.h"
 
-void readMMMatrix(char *file_path, Matrix *M);
+void readMMMatrix(char *file_path, Matrix *Mtrx);
 
-void readMatrix(char *file_path, Matrix *M);
+void readMatrix(char *file_path, Matrix *Mtx);
 
 void saveMatrix(Matrix *res, char *filename);
 
@@ -23,6 +23,8 @@ void coo2csc(
 );
 
 void clearMatrix(Matrix *A);
+
+void generateMMMatrix(char* filepath, int size, int nnz);
 
 
 #endif //READ_H

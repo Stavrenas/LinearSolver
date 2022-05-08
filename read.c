@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include "types.h"
 #include "read.h"
 #include "mmio.h"
+#include "utilities.h"
 
 void readMMMatrix(char *file_path, Matrix *Mtrx)
 {
@@ -46,7 +48,7 @@ void readMMMatrix(char *file_path, Matrix *Mtrx)
     int temp; // to supress the warning
     for (i = 0; i < nz; i++)
     {
-        temp = fscanf(f, "%d %d", &I[i], &J[i]);
+        temp = fscanf(f, "%d %d %lf", &I[i], &J[i], &val[i]);
         I[i]--; /* adjust from 1-based to 0-based */
         J[i]--;
     }
@@ -54,33 +56,22 @@ void readMMMatrix(char *file_path, Matrix *Mtrx)
     if (f != stdin)
         fclose(f);
 
-    /************************/
-    /* now write out matrix */
-    /************************/
-
-    // mm_write_banner(stdout, matcode);
-    // mm_write_mtx_crd_size(stdout, M, N, nz);
     // Up to this point, I[] cointains row index and J[] column index for the nonzero elements
-    /*for (i=0; i<nz; i++)
-        {
-             fprintf(stdout, "%d %d\n", I[i]+1, J[i]+1);
-             printf("%d %d\n", I[i]+1, J[i]+1);
-        }
-        */
 
     const uint32_t nnz = nz;
 
     // printf("M is %d, nnz is %d\n", M, nnz);
-    uint32_t *csc_row = (uint32_t *)malloc(nnz * sizeof(uint32_t));
-    uint32_t *csc_col = (uint32_t *)malloc((M + 1) * sizeof(uint32_t));
+    uint32_t *row_idx = (uint32_t *)malloc((M + 1) * sizeof(uint32_t));
+    uint32_t *col_idx = (uint32_t *)malloc(M * sizeof(uint32_t));
+    uint32_t *values = (uint32_t *)malloc(nnz * sizeof(uint32_t));
     uint32_t isOneBased = 0;
 
     // Call coo2csc for isOneBase false
-    coo2csc(csc_row, csc_col, I, J, nnz, M, isOneBased);
+    coo2csc(row_idx, col_idx, I, J,nnz, M, isOneBased);
 
-    Mtrx->csc_elem = csc_col; // csc_col[i] -> total elements up to ith row (size + 1)
-    Mtrx->csc_idx = csc_row;  // csc_row[i] -> column index of ith element   (nnz     )
-
+    Mtrx->row_idx = row_idx; 
+    Mtrx->col_idx = col_idx; 
+    Mtrx->values = val;
     Mtrx->size = M;
 }
 
@@ -137,12 +128,12 @@ void printMatrix(Matrix *res)
     printf("] \n");
 
     printf("C->row_idx = [");
-    for (int i = 0; i < res->size + 1; i++)
+    for (int i = 0; i < nnz + 1; i++)
         printf("%d ", res->row_idx[i]);
     printf("] \n");
 
     printf("values = [");
-    for (int i = 0; i < res->nnz; i++)
+    for (int i = 0; i < nnz; i++)
         printf("%d ", res->values[i]);
     printf("] \n");
 }
@@ -163,7 +154,7 @@ void saveMatrix(Matrix *res, char *filename)
     FILE *filepointer = fopen(filename, "w"); // create a binary file
     int nnz = res->row_idx[res->size];
 
-    fprintf(filepointer, "%d %d %d",res->size,res->size,nnz);
+    fprintf(filepointer, "%d %d %d", res->size, res->size, nnz);
 
     for (int i = 0; i < nnz; i++)
         fprintf(filepointer, "%d ", res->values[i]);
@@ -173,16 +164,54 @@ void saveMatrix(Matrix *res, char *filename)
         fprintf(filepointer, "%d ", res->col_idx[i]);
     fprintf(filepointer, "\n");
 
-        for (int i = 0; i < res->size; i++)
+    for (int i = 0; i < res->size; i++)
         fprintf(filepointer, "%d ", res->row_idx[i]);
     fprintf(filepointer, "\n");
     fclose(filepointer);
 }
 
-void readMatrix(char *file_path, Matrix *M){
+void readMatrix(char *file_path, Matrix *Mtrx)
+{
 
-    int M,N,NNZ;
+    int M, N, NNZ;
+}
+
+void generateMMMatrix(char *filepath, int size, int nnz)
+{
+
+    FILE *f;
+    MM_typecode matcode;
+    int totalPositions = size * size;
+    int *rows = (int *)malloc(nnz * sizeof(int));
+    int *cols = (int *)malloc(nnz * sizeof(int));
+    double *values = (double *)malloc(nnz * sizeof(double));
+    int i;
+
+    mm_initialize_typecode(&matcode);
+    mm_set_matrix(&matcode);
+    mm_set_coordinate(&matcode);
+    mm_set_real(&matcode);
+
+    if ((f = fopen(filepath, "w")) == NULL)
+        printf("Err\n");
+
+    mm_write_banner(f, matcode);
+    mm_write_mtx_crd_size(f, size, size, nnz);
+
+    srand(time(NULL));    
+
+    for (i = 0; i < nnz; i++)
+    {
+        rows[i] = rand() % size + 1;
+        cols[i] = rand() % size + 1;
+        values[i] = randomTrueDouble();
+    }
+
+    quickSort(cols, 0, nnz - 1);
 
 
+    for (i = 0; i < nnz; i++)
+        fprintf(f, "%d %d %10.3g\n", rows[i], cols[i], values[i]);
 
+    fclose(f);
 }
