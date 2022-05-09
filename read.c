@@ -124,18 +124,18 @@ void printMatrix(Matrix *res)
 {
     int nnz = res->row_idx[res->size];
     printf("C->col_idx = [");
-    for (int i = 0; i <= nnz; i++)
+    for (int i = 0; i < nnz; i++)
         printf("%d ", res->col_idx[i]);
     printf("] \n");
 
     printf("C->row_idx = [");
-    for (int i = 0; i < nnz + 1; i++)
+    for (int i = 0; i <= nnz; i++)
         printf("%d ", res->row_idx[i]);
     printf("] \n");
 
     printf("values = [");
     for (int i = 0; i < nnz; i++)
-        printf("%d ", res->values[i]);
+        printf("%e ", res->values[i]);
     printf("] \n");
 }
 
