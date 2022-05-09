@@ -62,61 +62,62 @@ void readMMMatrix(char *file_path, Matrix *Mtrx)
 
     // printf("M is %d, nnz is %d\n", M, nnz);
     uint32_t *row_idx = (uint32_t *)malloc((M + 1) * sizeof(uint32_t));
-    uint32_t *col_idx = (uint32_t *)malloc(M * sizeof(uint32_t));
-    uint32_t *values = (uint32_t *)malloc(nnz * sizeof(uint32_t));
-    uint32_t isOneBased = 0;
+    uint32_t *col_idx = (uint32_t *)malloc(nnz * sizeof(uint32_t));
 
-    // Call coo2csc for isOneBase false
-    coo2csc(row_idx, col_idx, I, J,nnz, M, isOneBased);
+    // Call coo2csr for isOneBase false
+    coo2csr(row_idx, col_idx, I, J, nnz, M);
 
-    Mtrx->row_idx = row_idx; 
-    Mtrx->col_idx = col_idx; 
+    Mtrx->row_idx = row_idx;
+    Mtrx->col_idx = col_idx;
     Mtrx->values = val;
     Mtrx->size = M;
 }
 
-void coo2csc(
-    uint32_t *const row,           /*!< CSC row start indices */
-    uint32_t *const col,           /*!< CSC column indices */
+void coo2csr(
+    uint32_t *const row_idx,       /*!< CSR row indices */
+    uint32_t *const col_idx,       /*!< CSR column indices */
     uint32_t const *const row_coo, /*!< COO row indices */
     uint32_t const *const col_coo, /*!< COO column indices */
     uint32_t const nnz,            /*!< Number of nonzero elements */
-    uint32_t const n,              /*!< Number of rows/columns */
-    uint32_t const isOneBased      /*!< Whether COO is 0- or 1-based */
+    uint32_t const n               /*!< Number of rows/columns */
 )
 {
-    for (uint32_t l = 0; l < n + 1; l++)
-        col[l] = 0;
-
     for (uint32_t l = 0; l < nnz; l++)
-        col[col_coo[l] - isOneBased]++;
+        col_idx[l] = col_coo[l];
+
+    for (uint32_t i = 0; i <= n; i++)
+        row_idx[i] = 0;
+
+    for (uint32_t i = 0; i < n; i++)
+        row_idx[row_coo[i]]++;
 
     // ----- cumulative sum
     for (uint32_t i = 0, cumsum = 0; i < n; i++)
     {
-        uint32_t temp = col[i];
-        col[i] = cumsum;
+        uint32_t temp = row_idx[i];
+        row_idx[i] = cumsum;
         cumsum += temp;
     }
-    col[n] = nnz;
-    // ----- copy the row indices to the correct place
-    for (uint32_t l = 0; l < nnz; l++)
-    {
-        uint32_t col_l;
-        col_l = col_coo[l] - isOneBased;
+    row_idx[n] = nnz;
 
-        uint32_t dst = col[col_l];
-        row[dst] = row_coo[l] + 1;
+    // // ----- copy the row indices to the correct place
+    // for (uint32_t l = 0; l < nnz; l++)
+    // {
+    //     uint32_t col_l;
+    //     col_l = col_coo[l];
 
-        col[col_l]++;
-    }
-    // ----- revert the column pointers
-    for (uint32_t i = 0, last = 0; i < n; i++)
-    {
-        uint32_t temp = col[i];
-        col[i] = last;
-        last = temp;
-    }
+    //     uint32_t dst = col_idx[col_l];
+    //     row_idx[dst] = row_coo[l] + 1;
+
+    //     col_idx[col_l]++;
+    // }
+    // // ----- revert the column pointers
+    // for (uint32_t i = 0, last = 0; i < n; i++)
+    // {
+    //     uint32_t temp = col_idx[i];
+    //     col_idx[i] = last;
+    //     last = temp;
+    // }
 }
 
 void printMatrix(Matrix *res)
@@ -178,10 +179,11 @@ void readMatrix(char *file_path, Matrix *Mtrx)
 
 void generateMMMatrix(char *filepath, int size, int nnz)
 {
+    if (nnz > size * size)
+        return;
 
     FILE *f;
     MM_typecode matcode;
-    int totalPositions = size * size;
     int *rows = (int *)malloc(nnz * sizeof(int));
     int *cols = (int *)malloc(nnz * sizeof(int));
     double *values = (double *)malloc(nnz * sizeof(double));
@@ -198,10 +200,11 @@ void generateMMMatrix(char *filepath, int size, int nnz)
     mm_write_banner(f, matcode);
     mm_write_mtx_crd_size(f, size, size, nnz);
 
-    srand(time(NULL));    
+    srand(time(NULL));
 
     for (i = 0; i < nnz; i++)
     {
+
         rows[i] = rand() % size + 1;
         cols[i] = rand() % size + 1;
         values[i] = randomTrueDouble();
@@ -209,6 +212,48 @@ void generateMMMatrix(char *filepath, int size, int nnz)
 
     quickSort(cols, 0, nnz - 1);
 
+    for (int i = 0; i < nnz; i++) // sort rows
+    {
+        int col = cols[i];
+        int start = i;
+        int end = i;
+        for (int j = i; j < nnz; j++)
+        {
+            if (cols[j] != col)
+            {
+                end = j - 1;
+                break;
+            }
+        }
+        quickSort(rows, start, end);
+    }
+
+    for (int i = 0; i < nnz; i++) // delete duplicates
+    {
+        int col = cols[i];
+        int start = i;
+        int end = i;
+        for (int j = i; j < nnz; j++)
+        {
+            if (cols[j] != col)
+            {
+                end = j - 1;
+                break;
+            }
+        }
+        if (start + 1 < nnz)
+        {
+            for (int j = start + 1; j < end; j++)
+            {
+                if (rows[j] == rows[j - 1])
+                {
+                    rows[j] = rand() % size + 1;
+                    j = start + 1;
+                }
+            }
+        }
+        quickSort(rows, start, end);
+    }
 
     for (i = 0; i < nnz; i++)
         fprintf(f, "%d %d %10.3g\n", rows[i], cols[i], values[i]);
