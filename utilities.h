@@ -2,6 +2,7 @@
 #define UTILITIES_H
 #include <sys/time.h>
 #include <stdbool.h>
+#include "types.h"
 
 struct timeval tic();
 
@@ -24,5 +25,7 @@ int partition (int arr[], int low, int high);
 void quickSort(int arr[], int low, int high);
 
 double randomTrueDouble();
+
+void generateSolutionVector(char *matrixName, Matrix *Mtr);
 
 #endif

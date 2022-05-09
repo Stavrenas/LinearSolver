@@ -3,7 +3,6 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include "types.h"
 #include "read.h"
 #include "mmio.h"
 #include "utilities.h"
@@ -45,10 +44,9 @@ void readMMMatrix(char *file_path, Matrix *Mtrx)
     J = (uint32_t *)malloc(nz * sizeof(uint32_t));
     val = (double *)malloc(nz * sizeof(double));
 
-    int temp; // to supress the warning
     for (i = 0; i < nz; i++)
     {
-        temp = fscanf(f, "%d %d %lf", &I[i], &J[i], &val[i]);
+        fscanf(f, "%d %d %lf", &I[i], &J[i], &val[i]);
         I[i]--; /* adjust from 1-based to 0-based */
         J[i]--;
     }
@@ -90,16 +88,16 @@ void coo2csr(
 
     for (uint32_t i = 0; i < nnz; i++){
         row_idx[row_coo[i]]++;
-        printf("row_coo[%d] = %d, row_idx[%d] = %d \n",i,row_coo[i],i,row_idx[i]);
+        //printf("row_coo[%d] = %d, row_idx[%d] = %d \n",i,row_coo[i],i,row_idx[i]);
     }
 
     // ----- cumulative sum
-    printf("cumsum\n");
+    //printf("cumsum\n");
     for (uint32_t i = 0, cumsum = 0; i < n; i++)
     {
         uint32_t temp = row_idx[i];
         row_idx[i] = cumsum;
-        printf("row_idx[%d] = %d \n",i,row_idx[i]);
+        //printf("row_idx[%d] = %d \n",i,row_idx[i]);
         cumsum += temp;
     }
     row_idx[n] = nnz;
@@ -162,7 +160,7 @@ void saveMatrix(Matrix *res, char *filename)
     fprintf(filepointer, "%d %d %d", res->size, res->size, nnz);
 
     for (int i = 0; i < nnz; i++)
-        fprintf(filepointer, "%d ", res->values[i]);
+        fprintf(filepointer, "%f ", res->values[i]);
     fprintf(filepointer, "\n");
 
     for (int i = 0; i < res->size; i++)
@@ -173,12 +171,6 @@ void saveMatrix(Matrix *res, char *filename)
         fprintf(filepointer, "%d ", res->row_idx[i]);
     fprintf(filepointer, "\n");
     fclose(filepointer);
-}
-
-void readMatrix(char *file_path, Matrix *Mtrx)
-{
-
-    int M, N, NNZ;
 }
 
 void generateMMMatrix(char *filepath, int size, int nnz)

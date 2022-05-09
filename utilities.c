@@ -4,7 +4,6 @@
 #include <sys/time.h>
 #include "utilities.h"
 
-
 //**For timing**//
 
 struct timeval tic()
@@ -23,8 +22,6 @@ double toc(struct timeval begin)
     stime = stime / 1000;
     return (stime);
 }
-
-
 
 //**For dense matrices**//
 
@@ -53,7 +50,6 @@ int readSquareMatrix(char *filename, int size, double **array)
 
     return 1;
 }
-
 
 int readVector(char *filename, int size, double *array)
 {
@@ -117,23 +113,23 @@ bool checkSolution(int size, double X_calculated[], double X[])
 }
 
 // A utility function to swap two elements
-void swap(int* a, int* b)
+void swap(int *a, int *b)
 {
     int t = *a;
     *a = *b;
     *b = t;
 }
- 
+
 /* This function takes last element as pivot, places
 the pivot element at its correct position in sorted
 array, and places all smaller (smaller than pivot)
 to left of pivot and all greater elements to right
 of pivot */
-int partition (int arr[], int low, int high)
+int partition(int arr[], int low, int high)
 {
     int pivot = arr[high]; // pivot
-    int i = (low - 1); // Index of smaller element and indicates the right position of pivot found so far
- 
+    int i = (low - 1);     // Index of smaller element and indicates the right position of pivot found so far
+
     for (int j = low; j <= high - 1; j++)
     {
         // If current element is smaller than the pivot
@@ -146,7 +142,7 @@ int partition (int arr[], int low, int high)
     swap(&arr[i + 1], &arr[high]);
     return (i + 1);
 }
- 
+
 /* The main function that implements QuickSort
 arr[] --> Array to be sorted,
 low --> Starting index,
@@ -158,7 +154,7 @@ void quickSort(int arr[], int low, int high)
         /* pi is partitioning index, arr[p] is now
         at right place */
         int pi = partition(arr, low, high);
- 
+
         // Separately sort elements before
         // partition and after partition
         quickSort(arr, low, pi - 1);
@@ -166,11 +162,10 @@ void quickSort(int arr[], int low, int high)
     }
 }
 
-
 double randomTrueDouble()
 {
     double f;
-    int sign, exp,i;
+    int sign, exp, i;
     unsigned int mant;
 
     char s[33];
@@ -221,5 +216,46 @@ double randomTrueDouble()
     return f;
 }
 
-
 //**For sparse matrices**//
+
+void generateSolutionVector(char *matrixName, Matrix *Mtr) // generates B where Ax = B and X is a random vector
+{
+
+    FILE *fileB, *fileX;
+
+    double *X = (double *)malloc(Mtr->size * sizeof(double));
+    double *B = (double *)malloc(Mtr->size * sizeof(double));
+    for (int i = 0; i < Mtr->size; i++)
+    {
+        X[i] = randomTrueDouble();
+        B[i] = 0;
+    }
+
+    for (int i = 1; i <= Mtr->size; i++)
+    {
+        int start = Mtr->row_idx[i-1];
+        int end = Mtr->row_idx[i];
+        for (int j = start; j < end; j++)
+            B[i - 1] = X[i - 1] * Mtr->values[Mtr->col_idx[j]];
+    }
+
+    char *filenameB = (char *)malloc(40 * sizeof(char));
+    char *filenameX = (char *)malloc(40 * sizeof(char));
+
+    sprintf(filenameB, "%s-B.txt", matrixName);
+    sprintf(filenameX, "%s-X.txt", matrixName);
+
+    if ((fileB = fopen(filenameB, "w")) == NULL)
+        printf("Err\n");
+
+    if ((fileX = fopen(filenameX, "w")) == NULL)
+        printf("Err\n");
+
+    for (int i = 0; i < Mtr->size; i++)
+        fprintf(fileB, "%e\n", B[i]);
+    fclose(fileB);
+
+    for (int i = 0; i < Mtr->size; i++)
+        fprintf(fileX, "%e\n", X[i]);
+    fclose(fileX);
+}

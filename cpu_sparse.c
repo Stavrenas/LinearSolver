@@ -7,7 +7,7 @@
 #include "utilities.h"
 #include "read.h"
 
-int main1(int argc, char** argv)
+int main1(int argc, char **argv)
 {
 
     Matrix *A = (Matrix *)malloc(sizeof(Matrix));
@@ -32,11 +32,11 @@ int main1(int argc, char** argv)
     readMMMatrix(filenameA, A);
     readMMMatrix(filenameB, B);
 
-    //serializeMatrix(size, A, Aserialized);
+    // serializeMatrix(size, A, Aserialized);
 
     int info;
     char uplo = 'U';
-    //int sizeB = size;
+    // int sizeB = size;
     int sides = 1;
     struct timeval start = tic();
     // LAPACK_dpotrf(&uplo, &size, Aserialized, &size, &info);
@@ -63,11 +63,29 @@ int main1(int argc, char** argv)
     }
 }
 
-int main(){
+int main()
+{
 
-    char* filename = "Test.mtx";
-    generateMMMatrix(filename,100,1000);
-    Matrix* mat = (Matrix*) malloc(sizeof(Matrix));
-    readMMMatrix(filename,mat);
-    printMatrix(mat);
+    char *matrixName = "Test"; 
+    char *filename = (char *)malloc(40 * sizeof(char));
+    char *filenameB = (char *)malloc(40 * sizeof(char));
+    char *filenameX = (char *)malloc(40 * sizeof(char));
+
+    Matrix *mat = (Matrix *)malloc(sizeof(Matrix));
+
+    sprintf(filename, "%s.mtx", matrixName);
+    sprintf(filenameB, "%s-B.txt", matrixName);
+    sprintf(filenameX, "%s-X.txt", matrixName);
+
+    //generateMMMatrix(filename, 100, 1000);
+    readMMMatrix(filename, mat);
+    //printMatrix(mat);
+
+    double* B = (double*)malloc(mat->size*sizeof(double));
+    double* X = (double*)malloc(mat->size*sizeof(double));
+
+    generateSolutionVector(matrixName, mat);
+    readVector(filenameB, mat->size, B);
+    readVector(filenameX, mat->size, X);
+    
 }

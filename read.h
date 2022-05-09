@@ -4,8 +4,6 @@
 
 void readMMMatrix(char *file_path, Matrix *Mtrx);
 
-void readMatrix(char *file_path, Matrix *Mtx);
-
 void saveMatrix(Matrix *res, char *filename);
 
 void printMatrix(Matrix *res);
