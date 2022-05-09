@@ -18,6 +18,8 @@ int findSum(int size);
 
 bool checkSolution(int size, double X_calculated[], double X[]);
 
+bool checkSolutionThres(int size, double X_calculated[], double X[],double threshold);
+
 void swap(int* a, int* b);
 
 int partition (int arr[], int low, int high);
@@ -27,5 +29,7 @@ void quickSort(int arr[], int low, int high);
 double randomTrueDouble();
 
 void generateSolutionVector(char *matrixName, Matrix *Mtr);
+
+void saveVector(char *filename, int size, double *array);
 
 #endif

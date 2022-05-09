@@ -228,7 +228,7 @@ int main(){
 
     printf("Cholesky factorization time is %f\n",toc(start));
 
-    if (checkSolution(size, X, Xcalculated) == 1)
+    if (checkSolution(size, X, Xcalculated))
         printf("Solution is True\n");
     else
         printf("Solution is False\n");

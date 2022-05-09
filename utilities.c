@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include <sys/time.h>
 #include "utilities.h"
 
@@ -102,9 +103,24 @@ bool checkSolution(int size, double X_calculated[], double X[])
 
     for (int i = 0; i < size; i++)
     {
-        if (abs(X_calculated[i] - X[i]) > threshold)
+        if (fabs(X_calculated[i] - X[i]) > threshold)
         {
-            printf("Error at %d: error is %e\n", i, abs(X_calculated[i] - X[i]));
+            printf("Error at %d: error is %e\n", i, fabs(X_calculated[i] - X[i]));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool checkSolutionThres(int size, double X_calculated[], double X[], double threshold)
+{
+
+    for (int i = 0; i < size; i++)
+    {
+        if (fabs(X_calculated[i] - X[i]) > threshold)
+        {
+            printf("Error at %d: error is %e\n X[%d] = %e and Xcalculated[%d] = %e \n", i, fabs(X_calculated[i] - X[i]), i,X[i],i,X_calculated[i]);
             return false;
         }
     }
@@ -225,15 +241,21 @@ void generateSolutionVector(char *matrixName, Matrix *Mtr) // generates B where 
 
     double *X = (double *)malloc(Mtr->size * sizeof(double));
     double *B = (double *)malloc(Mtr->size * sizeof(double));
+    double temp = 1e-20;
     for (int i = 0; i < Mtr->size; i++)
     {
+        // do
+        // {
+        //     temp = randomTrueDouble();
+        // } while (abs(temp) < 1e-15 || abs(temp) > 1e15);
+
         X[i] = randomTrueDouble();
         B[i] = 0;
     }
 
     for (int i = 1; i <= Mtr->size; i++)
     {
-        int start = Mtr->row_idx[i-1];
+        int start = Mtr->row_idx[i - 1];
         int end = Mtr->row_idx[i];
         for (int j = start; j < end; j++)
             B[i - 1] = X[i - 1] * Mtr->values[Mtr->col_idx[j]];
@@ -258,4 +280,16 @@ void generateSolutionVector(char *matrixName, Matrix *Mtr) // generates B where 
     for (int i = 0; i < Mtr->size; i++)
         fprintf(fileX, "%e\n", X[i]);
     fclose(fileX);
+
+    free(X);
+    free(B);
+}
+
+void saveVector(char *filename, int size, double *array)
+{
+    FILE *f;
+    if ((f = fopen(filename, "w")) == NULL)
+        printf("Err\n");
+    for (int i = 0; i < size; i++)
+        fprintf(f, "%e\n", array[i]);
 }
