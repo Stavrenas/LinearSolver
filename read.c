@@ -88,14 +88,18 @@ void coo2csr(
     for (uint32_t i = 0; i <= n; i++)
         row_idx[i] = 0;
 
-    for (uint32_t i = 0; i < n; i++)
+    for (uint32_t i = 0; i < nnz; i++){
         row_idx[row_coo[i]]++;
+        printf("row_coo[%d] = %d, row_idx[%d] = %d \n",i,row_coo[i],i,row_idx[i]);
+    }
 
     // ----- cumulative sum
+    printf("cumsum\n");
     for (uint32_t i = 0, cumsum = 0; i < n; i++)
     {
         uint32_t temp = row_idx[i];
         row_idx[i] = cumsum;
+        printf("row_idx[%d] = %d \n",i,row_idx[i]);
         cumsum += temp;
     }
     row_idx[n] = nnz;
@@ -129,7 +133,7 @@ void printMatrix(Matrix *res)
     printf("] \n");
 
     printf("C->row_idx = [");
-    for (int i = 0; i <= nnz; i++)
+    for (int i = 0; i <= res->size; i++)
         printf("%d ", res->row_idx[i]);
     printf("] \n");
 
@@ -247,6 +251,7 @@ void generateMMMatrix(char *filepath, int size, int nnz)
             {
                 if (rows[j] == rows[j - 1])
                 {
+                    //printf("dup: rows[%d] = rows [%d] = %d, cols[%d] = cols [%d] = %d\n",j,j-1,rows[j],j,j-1,cols[j]);
                     rows[j] = rand() % size + 1;
                     j = start + 1;
                 }

@@ -65,8 +65,9 @@ int main1(int argc, char** argv)
 
 int main(){
 
-    generateMMMatrix("Test.mtx",100,100);
+    char* filename = "Test.mtx";
+    generateMMMatrix(filename,100,1000);
     Matrix* mat = (Matrix*) malloc(sizeof(Matrix));
-    readMMMatrix("Test.mtx",mat);
+    readMMMatrix(filename,mat);
     printMatrix(mat);
 }
