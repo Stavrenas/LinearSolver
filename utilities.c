@@ -244,12 +244,12 @@ void generateSolutionVector(char *matrixName, Matrix *Mtr) // generates B where 
     double temp = 1e-20;
     for (int i = 0; i < Mtr->size; i++)
     {
-        // do
-        // {
-        //     temp = randomTrueDouble();
-        // } while (abs(temp) < 1e-15 || abs(temp) > 1e15);
+        do
+        {
+            temp = randomTrueDouble();
+        } while (abs(temp) < 1e-5 || abs(temp) > 1e15);
 
-        X[i] = randomTrueDouble();
+        X[i] = temp;
         B[i] = 0;
     }
 

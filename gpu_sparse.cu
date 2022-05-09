@@ -54,7 +54,7 @@ static const char *cudaGetErrorEnum(cusolverStatus_t error)
 int main()
 {
 
-    char *matrixName = "Test";
+    char *matrixName = "bcsstk18";
     char *filename = (char *)malloc(40 * sizeof(char));
     char *filenameB = (char *)malloc(40 * sizeof(char));
     char *filenameX = (char *)malloc(40 * sizeof(char));
@@ -75,7 +75,7 @@ int main()
     double *X = (double *)malloc(mat->size * sizeof(double));
     double *Xcalculated = (double *)malloc(mat->size * sizeof(double));
 
-    //generateSolutionVector(matrixName, mat);
+    generateSolutionVector(matrixName, mat);
     readVector(filenameB, mat->size, B);
     readVector(filenameX, mat->size, X);
 

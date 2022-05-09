@@ -86,18 +86,19 @@ void coo2csr(
     for (uint32_t i = 0; i <= n; i++)
         row_idx[i] = 0;
 
-    for (uint32_t i = 0; i < nnz; i++){
+    for (uint32_t i = 0; i < nnz; i++)
+    {
         row_idx[row_coo[i]]++;
-        //printf("row_coo[%d] = %d, row_idx[%d] = %d \n",i,row_coo[i],i,row_idx[i]);
+        // printf("row_coo[%d] = %d, row_idx[%d] = %d \n",i,row_coo[i],i,row_idx[i]);
     }
 
     // ----- cumulative sum
-    //printf("cumsum\n");
+    // printf("cumsum\n");
     for (uint32_t i = 0, cumsum = 0; i < n; i++)
     {
         uint32_t temp = row_idx[i];
         row_idx[i] = cumsum;
-        //printf("row_idx[%d] = %d \n",i,row_idx[i]);
+        // printf("row_idx[%d] = %d \n",i,row_idx[i]);
         cumsum += temp;
     }
     row_idx[n] = nnz;
@@ -203,7 +204,12 @@ void generateMMMatrix(char *filepath, int size, int nnz)
 
         rows[i] = rand() % size + 1;
         cols[i] = rand() % size + 1;
-        values[i] = randomTrueDouble();
+        double temp = 1e-11;
+        do
+        {
+            temp = randomTrueDouble();
+        } while (fabs(temp) > 1 || fabs(temp) < 1e-15);
+        values[i] = temp * 1e10;
     }
 
     quickSort(cols, 0, nnz - 1);
@@ -243,7 +249,7 @@ void generateMMMatrix(char *filepath, int size, int nnz)
             {
                 if (rows[j] == rows[j - 1])
                 {
-                    //printf("dup: rows[%d] = rows [%d] = %d, cols[%d] = cols [%d] = %d\n",j,j-1,rows[j],j,j-1,cols[j]);
+                    // printf("dup: rows[%d] = rows [%d] = %d, cols[%d] = cols [%d] = %d\n",j,j-1,rows[j],j,j-1,cols[j]);
                     rows[j] = rand() % size + 1;
                     j = start + 1;
                 }
@@ -251,6 +257,9 @@ void generateMMMatrix(char *filepath, int size, int nnz)
         }
         quickSort(rows, start, end);
     }
+
+    //TODO: make matrix diagonally dominant
+
 
     for (i = 0; i < nnz; i++)
         fprintf(f, "%d %d %10.3g\n", rows[i], cols[i], values[i]);
