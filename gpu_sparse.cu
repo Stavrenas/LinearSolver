@@ -54,7 +54,7 @@ static const char *cudaGetErrorEnum(cusolverStatus_t error)
 int main()
 {
 
-    char *matrixName = "bcsstk18";
+    char *matrixName = "Test";
     char *filename = (char *)malloc(40 * sizeof(char));
     char *filenameB = (char *)malloc(40 * sizeof(char));
     char *filenameX = (char *)malloc(40 * sizeof(char));

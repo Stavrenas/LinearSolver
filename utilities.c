@@ -253,12 +253,13 @@ void generateSolutionVector(char *matrixName, Matrix *Mtr) // generates B where 
         B[i] = 0;
     }
 
-    for (int i = 1; i <= Mtr->size; i++)
+    for (int i = 0; i < Mtr->size; i++)
     {
-        int start = Mtr->row_idx[i - 1];
-        int end = Mtr->row_idx[i];
+        int start = Mtr->row_idx[i];
+        int end = Mtr->row_idx[i+1];
+
         for (int j = start; j < end; j++)
-            B[i - 1] = X[i - 1] * Mtr->values[Mtr->col_idx[j]];
+            B[i] += X[Mtr->col_idx[j]] * Mtr->values[j];
     }
 
     char *filenameB = (char *)malloc(40 * sizeof(char));
