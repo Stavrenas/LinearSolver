@@ -2,26 +2,20 @@
 #define READ_H
 #include "types.h"
 
-void readMMMatrix(char *file_path, Matrix *Mtrx);
+void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx);
 
-void saveMatrix(Matrix *res, char *filename);
+void saveMatrix(SparseMatrix *res, char *filename);
 
-void printMatrix(Matrix *res);
+void saveVector(char *filename, int size, double *array);
 
-void createMatrix(Matrix *res, char *filename);
+void printSparseMatrix(SparseMatrix *res);
 
-void coo2csr(
-    uint32_t *const row,           /*!< CSC row start indices */
-    uint32_t *const col,           /*!< CSC column indices */
-    uint32_t const *const row_coo, /*!< COO row indices */
-    uint32_t const *const col_coo, /*!< COO column indices */
-    uint32_t const nnz,            /*!< Number of nonzero elements */
-    uint32_t const n              /*!< Number of rows/columns */
-);
+void printDenseMatrix(DenseMatrix *mat);
 
-void clearMatrix(Matrix *A);
+int readSquareMatrix(char *filename, int size, double **array);
 
-void generateMMMatrix(char* filepath, int size, int nnz);
+int readVector(char *filename, int size, double *array);
 
+void readMMVector(char *filename, Vector *vec);
 
-#endif //READ_H
+#endif // READ_H

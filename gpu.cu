@@ -12,6 +12,7 @@
 
 extern "C"{
 #include "utilities.h"
+#include "read.h"
 }
 
 
@@ -161,10 +162,10 @@ void iterativeRefinement(double **A, double *B, double *X, int size){
 
     /* step 3: query working space */
     error = cusolverDnDHgesv_bufferSize(cusolverHandle, size, 1, Acuda, size, dipiv, Bcuda, size, Xcuda, size, Workspace, &Lwork);
-    cudaMalloc(&Workspace, sizeof(double) * Lwork);
+    cudaMalloc(&Workspace,  Lwork);
     //printf("Error: %s\n", cudaGetErrorEnum(error));
 
-    /* step 4: Cholesky factorization */
+    /* step 4: Iterative Refinement solution */
     error = cusolverDnDHgesv(cusolverHandle, size, 1, Acuda, size, dipiv, Bcuda, size, Xcuda, size, Workspace, Lwork, iters, d_info);
     cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost);
     //printf("Error: %s\n", cudaGetErrorEnum(error));
@@ -174,6 +175,9 @@ void iterativeRefinement(double **A, double *B, double *X, int size){
         printf("%d-th parameter is wrong \n", -info);
         exit(1);
     }
+
+    // printf("Size of Workspace: %d\n", Lwork);
+    // printf("Iterations: %d\n",*iters);
     cudaMemcpy(X, Xcuda, sizeof(double) * size, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
 
@@ -217,21 +221,24 @@ int main(){
 
     printf("Iterative refinement time is %f\n",toc(start));
 
-    if (checkSolution(size, X, Xcalculated))
+    double thres = 1e-10;
+    if (compareVectors(size, X, Xcalculated, thres))
         printf("Solution is True\n");
     else
         printf("Solution is False\n");
 
-    start = tic();
+    // start = tic();
 
-    Cholesky(A,B,Xcalculated,size);
+    // printf("\n\n");
 
-    printf("Cholesky factorization time is %f\n",toc(start));
+    // Cholesky(A,B,Xcalculated,size);
 
-    if (checkSolution(size, X, Xcalculated))
-        printf("Solution is True\n");
-    else
-        printf("Solution is False\n");
+    // printf("Cholesky factorization time is %f\n",toc(start));
+
+    // if (compareVectors(size, X, Xcalculated,thres))
+    //     printf("Solution is True\n");
+    // else
+    //     printf("Solution is False\n");
 
 
 }

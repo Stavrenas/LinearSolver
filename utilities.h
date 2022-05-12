@@ -8,28 +8,42 @@ struct timeval tic();
 
 double toc(struct timeval begin);
 
-int readSquareMatrix(char *filename, int size, double **array);
-
-int readVector(char *filename, int size, double *array);
-
 void serializeMatrix(int size, double **A, double *serialized);
 
 int findSum(int size);
 
-bool checkSolution(int size, double X_calculated[], double X[]);
+bool compareVectors(int size, double Bcalculated[], double B[], double threshold);
 
-bool checkSolutionThres(int size, double X_calculated[], double X[],double threshold);
+void swap(int *a, int *b);
 
-void swap(int* a, int* b);
-
-int partition (int arr[], int low, int high);
+int partition(int arr[], int low, int high);
 
 void quickSort(int arr[], int low, int high);
 
 double randomTrueDouble();
 
-void generateSolutionVector(char *matrixName, Matrix *Mtr);
+void generateSolutionVector(char *matrixName, SparseMatrix *Mtr);
 
-void saveVector(char *filename, int size, double *array);
+void createMatrix(SparseMatrix *res, char *filename);
+
+void coo2csr(
+    uint32_t *const row_idx, /*!< CSR row indices */
+    uint32_t *const col_idx, /*!< CSR column indices */
+    double *const csr_val,
+    uint32_t const *const row_coo, /*!< COO row indices */
+    uint32_t const *const col_coo, /*!< COO column indices */
+    uint32_t const nnz,            /*!< Number of nonzero elements */
+    uint32_t const n,              /*!< Number of rows/columns */
+    double *const coo_val);
+
+void clearMatrix(SparseMatrix *A);
+
+void generateMMMatrix(char *filepath, int size, int nnz);
+
+void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X);
+
+void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X);
+
+void sparseToDense(SparseMatrix *spr, DenseMatrix *dns);
 
 #endif

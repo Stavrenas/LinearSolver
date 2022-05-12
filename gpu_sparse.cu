@@ -60,16 +60,16 @@ int main()
     char *filenameX = (char *)malloc(40 * sizeof(char));
     char *filenameSol = (char *)malloc(40 * sizeof(char));
 
-    Matrix *mat = (Matrix *)malloc(sizeof(Matrix));
+    SparseMatrix *mat = (SparseMatrix *)malloc(sizeof(SparseMatrix));
 
     sprintf(filename, "%s.mtx", matrixName);
-    sprintf(filenameB, "%s-B.txt", matrixName);
+    sprintf(filenameB, "%s_rhs1.mtx", matrixName);
     sprintf(filenameX, "%s-X.txt", matrixName);
     sprintf(filenameSol, "%s-Solution.txt", matrixName);
 
     //generateMMMatrix(filename, 100, 1000);
-    readMMMatrix(filename, mat);
-    // printMatrix(mat);
+    readSparseMMMatrix(filename, mat);
+    // printSparseMatrix(mat);
 
     double *B = (double *)malloc(mat->size * sizeof(double));
     double *X = (double *)malloc(mat->size * sizeof(double));
@@ -90,7 +90,7 @@ int main()
 
     int n = mat->size;
     int nnz = mat->row_idx[n];
-    double tolerance = 1e-38;
+    double tolerance = 1e-8;
     int reorder = 0;
     int *singularity = (int *)malloc(sizeof(int));
 
@@ -155,7 +155,7 @@ int main()
 
     cusolverSpDestroy(cusolverHandle);
 
-    if (checkSolutionThres(n,Xcalculated,X,1e-5))
+    if (compareVectors(n,Xcalculated,X,1e-5))
         printf("Solution is True\n");
     else
         printf("Solution is False\n");
