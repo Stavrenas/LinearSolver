@@ -10,11 +10,11 @@
 #include "cublas_v2.h"
 #include "device_launch_parameters.h"
 
-extern "C"{
+extern "C"
+{
 #include "utilities.h"
 #include "read.h"
 }
-
 
 static const char *cudaGetErrorEnum(cusolverStatus_t error)
 {
@@ -49,135 +49,91 @@ static const char *cudaGetErrorEnum(cusolverStatus_t error)
     return "<unknown>";
 }
 
-void Cholesky(double **A, double *B, double *X, int size){
-
-    double * Aserialized = (double *)malloc(size * size * sizeof(double));
-    serializeMatrix(size, A, Aserialized);
-
-    // INITIALIZE CUSOLVER
-    cusolverDnHandle_t cusolverHandle;
-    cudaStream_t stream = NULL;
-    cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
-
-    cusolverDnCreate(&cusolverHandle);
-    cudaStreamCreate(&stream);
-    cusolverDnSetStream(cusolverHandle, stream);
-
-    int info;
-    int *d_info = nullptr; /* device error info */
-
-    int Lwork = 0;               /* size of workspace */
-    double *Workspace = nullptr; /* device workspace */
-
-    /* step 2: COPY MATRICES TO DEVICE */
-    double *Bcuda, *Acuda, *Xcuda;
-
-    cudaMalloc((void **)&Acuda, size * size * sizeof(double));
-    cudaMalloc((void **)&Bcuda, size * sizeof(double));
-    cudaMalloc((void **)&Xcuda, size * sizeof(double));
-
-    cudaMemcpy(Acuda, Aserialized, size * size * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(Bcuda, B, size * sizeof(double), cudaMemcpyHostToDevice);
-
-    /* step 3: query working space */
-    cusolverDnDpotrf_bufferSize(cusolverHandle, uplo, size, Acuda, size, &Lwork);
-    cudaMalloc(&Workspace, sizeof(double) * Lwork);
-    cudaMalloc((void **)&d_info, sizeof(int));
-
-    /* step 4: Cholesky factorization */
-    cusolverDnDpotrf(cusolverHandle, uplo, size, Acuda, size, Workspace, Lwork, d_info);
-    cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost);
-
-    if (0 > info)
-    {
-        printf("%d-th parameter is wrong \n", -info);
-        exit(1);
-    }
-    else if (info > 0)
-        exit(1);
-
-    /* step 5: solve A*X = b */
-    cusolverDnDpotrs(cusolverHandle, uplo, size, 1, Acuda, size, Bcuda, size, d_info);
-    cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost);
-
-    if (0 > info)
-    {
-        printf("%d-th parameter is wrong \n", -info);
-        exit(1);
-    }
-
-    cudaMemcpy(X, Bcuda, sizeof(double) * size, cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
-
-    /* free resources */
-    cudaFree(Acuda);
-    cudaFree(Bcuda);
-    cudaFree(Xcuda);
-    cudaFree(d_info);
-    cudaFree(Workspace);
-
-    // cublasDestroy(handle);
-    cusolverDnDestroy(cusolverHandle);
-    cudaDeviceReset();
-
-    free(A);
-    free(B);
-    free(X);
-    free(Aserialized);
-}
-
-void iterativeRefinement(double **A, double *B, double *X, int size){
-
-    double * Aserialized = (double *)malloc(size * size * sizeof(double));
-    serializeMatrix(size, A, Aserialized);
+void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
+{
 
     // INITIALIZE CUSOLVER
     cusolverDnHandle_t cusolverHandle;
     cudaStream_t stream = NULL;
     cusolverStatus_t error;
+    cusolverDnIRSParams_t params;
+    cusolverDnIRSInfos_t infos;
 
     cusolverDnCreate(&cusolverHandle);
     cudaStreamCreate(&stream);
     cusolverDnSetStream(cusolverHandle, stream);
+    cusolverDnIRSInfosCreate(&infos);
 
-    int info, *dipiv;
+    /* SET ITERATIVE REFINEMENT PARAMETERS*/
+    cusolverDnIRSParamsCreate(&params);
+    cusolverDnIRSParamsSetSolverPrecisions(params, CUSOLVER_R_64F, CUSOLVER_R_16F); // main and lowest solver precision
+    cusolverDnIRSParamsSetRefinementSolver(params, CUSOLVER_IRS_REFINE_CLASSICAL);
+    cusolverDnIRSParamsSetTol(params, 1e-8);
+    /*This function sets the tolerance for the refinement solver. By default it is such that all the RHS satisfy:
+
+        RNRM < SQRT(N)*XNRM*ANRM*EPS*BWDMAX where
+    RNRM is the infinity-norm of the residual
+    XNRM is the infinity-norm of the solution
+    ANRM is the infinity-operator-norm of the matrix A
+    EPS is the machine epsilon for the Inputs/Outputs datatype that matches LAPACK <X>LAMCH('Epsilon')
+    BWDMAX, the value BWDMAX is fixed to 1.0
+    */
+
+    cusolverDnIRSParamsSetTolInner(params, 1e-4);    // default value
+    cusolverDnIRSParamsSetMaxIters(params, 50);      // default value
+    cusolverDnIRSParamsSetMaxItersInner(params, 50); // default value
+    // cusolverDnIRSParamsDisableFallback(params); //by default enabled
+
+    /* SET ITERATIVE REFINEMENT INFOS*/
+    cusolver_int_t max_iters, n_iters, outer_iters;
+    cusolverDnIRSInfosGetMaxIters(infos, &max_iters);
+
+    int info, sides, size;
     int *d_info = nullptr; /* device error info */
-    int *iters = (int*)malloc(sizeof(int));
+    int *iters = (int *)malloc(sizeof(int));
 
-    size_t Lwork = 0;            /* size of workspace */
+    size_t Lwork = 0;          /* size of workspace */
     void *Workspace = nullptr; /* device workspace */
 
     /* step 2: COPY MATRICES TO DEVICE */
     double *Bcuda, *Acuda, *Xcuda;
+    size = A->size;
 
     cudaMalloc((void **)&Acuda, size * size * sizeof(double));
     cudaMalloc((void **)&Bcuda, size * sizeof(double));
     cudaMalloc((void **)&Xcuda, size * sizeof(double));
 
     cudaMalloc((void **)&d_info, sizeof(int));
-    cudaMalloc((void **)&dipiv, size * size *sizeof(int));
 
-    cudaMemcpy(Acuda, Aserialized, size * size * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(Bcuda, B, size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(Acuda, A->values, size * size * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(Bcuda, B->values, size * sizeof(double), cudaMemcpyHostToDevice);
 
+    cusolver_int_t n = size;
+    cusolver_int_t nrhs = 1;
+    sides = 1;
     /* step 3: query working space */
-    error = cusolverDnDHgesv_bufferSize(cusolverHandle, size, 1, Acuda, size, dipiv, Bcuda, size, Xcuda, size, Workspace, &Lwork);
-    cudaMalloc(&Workspace,  Lwork);
-    //printf("Error: %s\n", cudaGetErrorEnum(error));
+    error = cusolverDnIRSXgesv_bufferSize(cusolverHandle, params, n, nrhs, &Lwork);
+    cudaMalloc(&Workspace, Lwork);
+    printf("Size of Workspace: %d\n", Lwork);
+    // printf("Error: %s\n", cudaGetErrorEnum(error));
 
     /* step 4: Iterative Refinement solution */
-    error = cusolverDnDHgesv(cusolverHandle, size, 1, Acuda, size, dipiv, Bcuda, size, Xcuda, size, Workspace, Lwork, iters, d_info);
+    error = cusolverDnIRSXgesv(cusolverHandle, params, infos, size, sides, Acuda, size, Bcuda, size, Xcuda, size, Workspace, Lwork, iters, d_info);
     cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost);
-    //printf("Error: %s\n", cudaGetErrorEnum(error));
+    // printf("Error: %s\n", cudaGetErrorEnum(error));
 
     if (0 != info)
     {
-        printf("%d-th parameter is wrong \n", -info);
+        if (info < 0)
+            printf("%d-th parameter is wrong \n", -info);
+        else
+            printf("U(%d,%d) is exactly zero \n", info, info);
         exit(1);
     }
 
-    // printf("Size of Workspace: %d\n", Lwork);
-    // printf("Iterations: %d\n",*iters);
+    cusolverDnIRSInfosGetNiters(infos, &n_iters);
+    cusolverDnIRSInfosGetOuterNiters(infos, &outer_iters);
+
     cudaMemcpy(X, Xcuda, sizeof(double) * size, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
 
@@ -191,54 +147,37 @@ void iterativeRefinement(double **A, double *B, double *X, int size){
     // cublasDestroy(handle);
     cusolverDnDestroy(cusolverHandle);
     cudaDeviceReset();
-
-    free(Aserialized);
-
 }
 
-int main(){
+int main()
+{
 
-    int size = 273;
-    double **A, *B, *Xcalculated, *X;
+    char *matrixName = "data/e30r0100";
+    char *filename = (char *)malloc(40 * sizeof(char));
+    char *filenameB = (char *)malloc(40 * sizeof(char));
+    char *filenameSol = (char *)malloc(40 * sizeof(char));
 
-    // ALLOCATE MEMORY
-    A = (double **)malloc(size * sizeof(double *));
-    B = (double *)malloc(size * sizeof(double));
-    Xcalculated = (double *)malloc(size * sizeof(double));
-    X = (double *)malloc(size * sizeof(double));
+    sprintf(filename, "%s.mtx", matrixName);
+    sprintf(filenameB, "%s_rhs1.mtx", matrixName);
 
-    for (int i = 0; i < size; i++)
-        A[i] = (double *)malloc(size * sizeof(double));
+    SparseMatrix *sparse = (SparseMatrix *)malloc(sizeof(SparseMatrix));
+    DenseMatrix *dense = (DenseMatrix *)malloc(sizeof(DenseMatrix));
+    Vector *B = (Vector *)malloc(sizeof(Vector));
 
-    // READ MATRICES
-    readSquareMatrix("A.txt", size, A);
-    readVector("B.txt", size, B);
-    readVector("X.txt", size, X);
+    readSparseMMMatrix(filename, sparse);
+    readMMVector(filenameB, B);
+    sparseToDense(sparse, dense);
+
+    double *X = (double *)malloc(B->size * sizeof(double));
 
     struct timeval start = tic();
 
-    iterativeRefinement(A,B,Xcalculated,size);
+    iterativeRefinementGeneral(dense, B, X);
 
-    printf("Iterative refinement time is %f\n",toc(start));
+    printf("Iterative refinement time is %f\n", toc(start));
 
-    double thres = 1e-10;
-    if (compareVectors(size, X, Xcalculated, thres))
-        printf("Solution is True\n");
-    else
-        printf("Solution is False\n");
-
-    // start = tic();
-
-    // printf("\n\n");
-
-    // Cholesky(A,B,Xcalculated,size);
-
-    // printf("Cholesky factorization time is %f\n",toc(start));
-
-    // if (compareVectors(size, X, Xcalculated,thres))
-    //     printf("Solution is True\n");
-    // else
-    //     printf("Solution is False\n");
+    sparseToDense(sparse, dense);    // overwrite factorized matrix to get original values for evaluation
+    checkSolutionDense(dense, B, X); // calculate |Ax-b|
 
 
 }

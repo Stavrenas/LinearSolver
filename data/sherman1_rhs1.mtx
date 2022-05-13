@@ -1,4 +1,7 @@
 %%MatrixMarket matrix array real general
+% RBTitle: 1U BLACK OIL SIMULATOR, SHALE BARRIERS  10 BY 10 BY 10 GRID, ONE   UNK  
+% RBKey:   SHERMAN1
+% Right-hand-side: 1
 1000 1
   0.22540000E-04
   0.11270000E+00

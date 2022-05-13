@@ -46,4 +46,10 @@ void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X);
 
 void sparseToDense(SparseMatrix *spr, DenseMatrix *dns);
 
+void clearDense(DenseMatrix *matrix);
+
+void clearSparse(SparseMatrix *matrix);
+
+void clearVector(Vector *vec);
+
 #endif

@@ -51,16 +51,19 @@ int findSum(int size)
 
 bool compareVectors(int size, double left[], double right[], double threshold)
 {
+    double total = 0.0;
     for (int i = 0; i < size; i++)
     {
         if (fabs(left[i] - right[i]) > threshold)
         {
-            printf("Error at %d: error is %e ", i, fabs(left[i] - right[i]));
-            printf("Left %e, right %e\n", left[i], right[i]);
-            //return false;
+            if (total == 0.0)
+                printf("Error at %d: error is %e ", i, fabs(left[i] - right[i]));
+            total += fabs(left[i] - right[i]);
+            // printf("Left %e, right %e\n", left[i], right[i]);
+            // return false;
         }
     }
-
+    printf("Total error is %e\n", total);
     return true;
 }
 
@@ -415,15 +418,15 @@ void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X)
     for (int i = 0; i < size; i++)
     {
         Bcalculated[i] = 0;
-        //printf("B[%d] = ",i);
-        for (int j = 0; j < size; j++){
+        // printf("B[%d] = ",i);
+        for (int j = 0; j < size; j++)
+        {
             Bcalculated[i] += mtrx->values[i * size + j] * X[j];
-            //printf(" %.2f * %.2f +",mtrx->values[i * size + j], X[j]);
-            //if(mtrx->values[i*size+j]!=0)
-                //printf("X is %f ",mtrx->values[i*size+j]);
-            
+            // printf(" %.2f * %.2f +",mtrx->values[i * size + j], X[j]);
+            // if(mtrx->values[i*size+j]!=0)
+            // printf("X is %f ",mtrx->values[i*size+j]);
         }
-        //printf("\n");
+        // printf("\n");
     }
 
     /* Compare Bcalculated with true B */
@@ -432,15 +435,10 @@ void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X)
 
 void sparseToDense(SparseMatrix *spr, DenseMatrix *dns)
 {
-    int size = spr->size;
-    double *values = (double *)malloc(size * size * sizeof(double));
 
-    /*Initialize values vector*/
-    for (int row = 0; row < size; row++)
-    {
-        for (int col = 0; col < size; col++)
-            values[row * size + col] = 0;
-    }
+    int size = spr->size;
+    clearDense(dns);
+    double *values = (double *)calloc(size * size, sizeof(double));
 
     /*Populate vector*/
     for (int row = 0; row < spr->size; row++)
@@ -458,4 +456,21 @@ void sparseToDense(SparseMatrix *spr, DenseMatrix *dns)
 
     dns->values = values;
     dns->size = size;
+}
+
+void clearDense(DenseMatrix *matrix)
+{
+    free(matrix->values);
+}
+
+void clearSparse(SparseMatrix *matrix)
+{
+    free(matrix->values);
+    free(matrix->row_idx);
+    free(matrix->col_idx);
+}
+
+void clearVector(Vector *vec)
+{
+    free(vec->values);
 }

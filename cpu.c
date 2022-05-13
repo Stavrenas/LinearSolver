@@ -46,49 +46,47 @@ void smallExample()
 
 int main()
 {
-    char *matrixName = "data/sherman1";
+    char *matrixName = "data/e30r0100";
     char *filename = (char *)malloc(40 * sizeof(char));
     char *filenameB = (char *)malloc(40 * sizeof(char));
     char *filenameSol = (char *)malloc(40 * sizeof(char));
 
     sprintf(filename, "%s.mtx", matrixName);
     sprintf(filenameB, "%s_rhs1.mtx", matrixName);
-    sprintf(filenameSol, "%s-Solution.txt", matrixName);
 
     SparseMatrix *sparse = (SparseMatrix *)malloc(sizeof(SparseMatrix));
     DenseMatrix *dense = (DenseMatrix *)malloc(sizeof(DenseMatrix));
     Vector *B = (Vector *)malloc(sizeof(Vector));
 
-    //generateMMMatrix(filename, 10, 10);
     readSparseMMMatrix(filename, sparse);
     readMMVector(filenameB, B);
     sparseToDense(sparse, dense);
 
     double *Bcopy = (double *)malloc(B->size * sizeof(double));
 
-    for (int i = 0; i < B->size; i++){
+    for (int i = 0; i < B->size; i++)
         Bcopy[i] = B->values[i];
-        //printf("%e \n",Bcopy[i]);
-    }
-    
-    //printSparseMatrix(sparse);
-    //printDenseMatrix(dense);
 
-    int  info,size, sides, *ipiv;
-    ipiv = (int*)malloc(size*sizeof(int));
-    
+    int info, size, sides, *ipiv;
+    ipiv = (int *)malloc(size * sizeof(int));
     size = dense->size;
     sides = 1;
     struct timeval start = tic();
 
-    LAPACK_dgesv( &size, &sides, dense->values, &size,ipiv, Bcopy, &size, &info); //X vector is saved on Bcopy 
-    if(info!=0)
-        printf("Info is %d\n",info);
+    LAPACK_dgesv(&size, &sides, dense->values, &size, ipiv, Bcopy, &size, &info); // X vector is saved on Bcopy
+
+    if (info != 0)
+        printf("Info is %d\n", info);
 
     printf("Cpu time is %f\n", toc(start));
-    sparseToDense(sparse, dense); //overwrite factorized matrix
-    checkSolutionDense(dense, B, Bcopy); //calculate |Ax-b|
 
+    sparseToDense(sparse, dense);        // overwrite factorized matrix to get original values for evaluation
+    checkSolutionDense(dense, B, Bcopy); // calculate |Ax-b|
+
+    // clearDense(dense);
+    // clearSparse(sparse);
+    // clearVector(B);
+    // free(Bcopy);
 
     return 0;
 }
