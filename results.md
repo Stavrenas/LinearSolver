@@ -1,4 +1,4 @@
-# Results for iterative refinement function
+# Iterative refinement results for dense matrices 
 
 The following results are derived from the solution of Ax = B.
 
@@ -37,7 +37,7 @@ The default internal tolerance is 1e-8. These results are derived form the last 
 
 ### Single precision arithmetic
 
-| Internal Tolerance | Iterations | Total error  | Run time |
+| Tolerance | Iterations | Total error  | Run time |
 | ------------------ | ---------- | ------------ | -------- |
 | 1e-8               | 1          | 6.239012e+01 | 1.18 s   |
 | 1e-10              | 1          | 6.239012e+01 | 1.18 s   |
@@ -50,7 +50,7 @@ The default internal tolerance is 1e-8. These results are derived form the last 
 
 In this example, the algorithm did not converge using half precision arithmetic without falling back to double precision
 
-| Internal Tolerance | Iterations | Total error  | Run time |
+| Tolerance | Iterations | Total error  | Run time |
 | ------------------ | ---------- | ------------ | -------- |
 | 1e-8               | 50(max)    | 8.130342e+03 | 3.02 s   |
 | 1e-10              | 50(max)    | 8.130342e+03 | 3.13 s   |
