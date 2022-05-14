@@ -40,9 +40,9 @@ void clearMatrix(SparseMatrix *A);
 
 void generateMMMatrix(char *filepath, int size, int nnz);
 
-void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X);
+void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X, double thres);
 
-void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X);
+void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X, double thres);
 
 void sparseToDense(SparseMatrix *spr, DenseMatrix *dns);
 

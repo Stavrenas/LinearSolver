@@ -66,7 +66,7 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
 
     /* SET ITERATIVE REFINEMENT PARAMETERS*/
     cusolverDnIRSParamsCreate(&params);
-    cusolverDnIRSParamsSetSolverPrecisions(params, CUSOLVER_R_64F, CUSOLVER_R_16F); // main and lowest solver precision
+    cusolverDnIRSParamsSetSolverPrecisions(params, CUSOLVER_R_64F, CUSOLVER_R_32F); // main and lowest solver precision
     cusolverDnIRSParamsSetRefinementSolver(params, CUSOLVER_IRS_REFINE_CLASSICAL);
     cusolverDnIRSParamsSetTol(params, 1e-8);
     /*This function sets the tolerance for the refinement solver. By default it is such that all the RHS satisfy:
@@ -79,10 +79,11 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
     BWDMAX, the value BWDMAX is fixed to 1.0
     */
 
-    cusolverDnIRSParamsSetTolInner(params, 1e-4);    // default value
-    cusolverDnIRSParamsSetMaxIters(params, 50);      // default value
-    cusolverDnIRSParamsSetMaxItersInner(params, 50); // default value
-    // cusolverDnIRSParamsDisableFallback(params); //by default enabled
+
+    cusolverDnIRSParamsSetTolInner(params, 1e-10);    // default value is 1e-4
+    cusolverDnIRSParamsSetMaxIters(params, 50);      // default value is 50
+    cusolverDnIRSParamsSetMaxItersInner(params, 50); // default value is 50
+    cusolverDnIRSParamsDisableFallback(params); //by default enabled
 
     /* SET ITERATIVE REFINEMENT INFOS*/
     cusolver_int_t max_iters, n_iters, outer_iters;
@@ -114,7 +115,6 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
     /* step 3: query working space */
     error = cusolverDnIRSXgesv_bufferSize(cusolverHandle, params, n, nrhs, &Lwork);
     cudaMalloc(&Workspace, Lwork);
-    printf("Size of Workspace: %d\n", Lwork);
     // printf("Error: %s\n", cudaGetErrorEnum(error));
 
     /* step 4: Iterative Refinement solution */
@@ -131,8 +131,11 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
         exit(1);
     }
 
+    //cusolverDnIRSInfosGetOuterNiters(infos, &outer_iters);
     cusolverDnIRSInfosGetNiters(infos, &n_iters);
-    cusolverDnIRSInfosGetOuterNiters(infos, &outer_iters);
+
+    printf("Iters: %d\n", n_iters);
+    printf("Size of Workspace: %d\n", Lwork);
 
     cudaMemcpy(X, Xcuda, sizeof(double) * size, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
@@ -149,10 +152,14 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
     cudaDeviceReset();
 }
 
-int main()
+int main(int argc, char *argv[])
 {
 
-    char *matrixName = "data/e30r0100";
+    char *matrixName;
+    if (argc == 1)
+        matrixName = "data/e20r0000";
+    else
+        matrixName = argv[1];
     char *filename = (char *)malloc(40 * sizeof(char));
     char *filenameB = (char *)malloc(40 * sizeof(char));
     char *filenameSol = (char *)malloc(40 * sizeof(char));
@@ -172,12 +179,11 @@ int main()
 
     struct timeval start = tic();
 
-    iterativeRefinementGeneral(dense, B, X);
+    for (int i = 0; i < 1; i++)
+        iterativeRefinementGeneral(dense, B, X);
 
     printf("Iterative refinement time is %f\n", toc(start));
 
     sparseToDense(sparse, dense);    // overwrite factorized matrix to get original values for evaluation
-    checkSolutionDense(dense, B, X); // calculate |Ax-b|
-
-
+    checkSolutionDense(dense, B, X, 0); // calculate |Ax-b|
 }

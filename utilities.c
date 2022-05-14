@@ -56,8 +56,6 @@ bool compareVectors(int size, double left[], double right[], double threshold)
     {
         if (fabs(left[i] - right[i]) > threshold)
         {
-            if (total == 0.0)
-                printf("Error at %d: error is %e ", i, fabs(left[i] - right[i]));
             total += fabs(left[i] - right[i]);
             // printf("Left %e, right %e\n", left[i], right[i]);
             // return false;
@@ -389,7 +387,7 @@ void coo2csr(
     }
 }
 
-void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X)
+void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X, double thres)
 {
 
     double *Bcalculated = (double *)malloc(B->size * sizeof(double));
@@ -406,10 +404,10 @@ void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X)
     }
 
     /* Compare Bcalculated with true B */
-    compareVectors(B->size, Bcalculated, B->values, 1e-5);
+    compareVectors(B->size, Bcalculated, B->values, thres);
 }
 
-void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X)
+void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X, double thres)
 {
     int size = mtrx->size;
     double *Bcalculated = (double *)malloc(size * sizeof(double));
@@ -421,8 +419,9 @@ void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X)
         // printf("B[%d] = ",i);
         for (int j = 0; j < size; j++)
         {
+            //printf(" %.2f * %.2f +", mtrx->values[i * size + j], X[j]);
             Bcalculated[i] += mtrx->values[i * size + j] * X[j];
-            // printf(" %.2f * %.2f +",mtrx->values[i * size + j], X[j]);
+
             // if(mtrx->values[i*size+j]!=0)
             // printf("X is %f ",mtrx->values[i*size+j]);
         }
@@ -430,7 +429,7 @@ void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X)
     }
 
     /* Compare Bcalculated with true B */
-    compareVectors(B->size, Bcalculated, B->values, 1e-5);
+    compareVectors(B->size, Bcalculated, B->values, thres);
 }
 
 void sparseToDense(SparseMatrix *spr, DenseMatrix *dns)
