@@ -10,74 +10,19 @@
 #include <cusolverSp.h>
 #include "device_launch_parameters.h"
 #include <cuda.h>
+#include "cudaUtilities.h"
 
 extern "C"
 {
-#include "utilities.h"
-#include "read.h"
-}
 
-static const char *cudaGetErrorEnum(cusolverStatus_t error)
-{
-    switch (error)
-    {
-    case CUSOLVER_STATUS_SUCCESS:
-        return "CUSOLVER_STATUS_SUCCESS";
-    case CUSOLVER_STATUS_NOT_INITIALIZED:
-        return "CUSOLVER_STATUS_NOT_INITIALIZED";
-    case CUSOLVER_STATUS_ALLOC_FAILED:
-        return "CUSOLVER_STATUS_ALLOC_FAILED";
-    case CUSOLVER_STATUS_INVALID_VALUE:
-        return "CUSOLVER_STATUS_INVALID_VALUE";
-    case CUSOLVER_STATUS_ARCH_MISMATCH:
-        return "CUSOLVER_STATUS_ARCH_MISMATCH";
-    case CUSOLVER_STATUS_MAPPING_ERROR:
-        return "CUSOLVER_STATUS_MAPPING_ERROR";
-    case CUSOLVER_STATUS_EXECUTION_FAILED:
-        return "CUSOLVER_STATUS_EXECUTION_FAILED";
-    case CUSOLVER_STATUS_INTERNAL_ERROR:
-        return "CUSOLVER_STATUS_INTERNAL_ERROR";
-    case CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED:
-        return "CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED";
-    case CUSOLVER_STATUS_NOT_SUPPORTED:
-        return "CUSOLVER_STATUS_NOT_SUPPORTED ";
-    case CUSOLVER_STATUS_ZERO_PIVOT:
-        return "CUSOLVER_STATUS_ZERO_PIVOT";
-    case CUSOLVER_STATUS_INVALID_LICENSE:
-        return "CUSOLVER_STATUS_INVALID_LICENSE";
-    }
-
-    return "<unknown>";
+    #include "utilities.h"
+    #include "read.h"
 }
 
 
-int main()
+void solveSystemSparse(SparseMatrix* mat, Vector *B, double* X)
 {
-
-    char *matrixName = "Test";
-    char *filename = (char *)malloc(40 * sizeof(char));
-    char *filenameB = (char *)malloc(40 * sizeof(char));
-    char *filenameX = (char *)malloc(40 * sizeof(char));
-    char *filenameSol = (char *)malloc(40 * sizeof(char));
-
-    SparseMatrix *mat = (SparseMatrix *)malloc(sizeof(SparseMatrix));
-
-    sprintf(filename, "%s.mtx", matrixName);
-    sprintf(filenameB, "%s_rhs1.mtx", matrixName);
-    sprintf(filenameX, "%s-X.txt", matrixName);
-    sprintf(filenameSol, "%s-Solution.txt", matrixName);
-
-    //generateMMMatrix(filename, 100, 1000);
-    readSparseMMMatrix(filename, mat);
-    // printSparseMatrix(mat);
-
-    double *B = (double *)malloc(mat->size * sizeof(double));
-    double *X = (double *)malloc(mat->size * sizeof(double));
     double *Xcalculated = (double *)malloc(mat->size * sizeof(double));
-
-    generateSolutionVector(matrixName, mat);
-    readVector(filenameB, mat->size, B);
-    readVector(filenameX, mat->size, X);
 
     // INITIALIZE CUSOLVER
     cusolverSpHandle_t cusolverHandle;
@@ -90,7 +35,7 @@ int main()
 
     int n = mat->size;
     int nnz = mat->row_idx[n];
-    double tolerance = 1e-8;
+    double tolerance = 1e-12;
     int reorder = 0;
     int *singularity = (int *)malloc(sizeof(int));
 
@@ -101,33 +46,18 @@ int main()
     cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
 
     // TRANSFER DATA TO GPU
-    double *csrValA, *b, *x;
-    int *csrRowPtrA, *csrColIndA;
+    // double *csrValA, *b, *x;
+    // int *csrRowPtrA, *csrColIndA;
 
-    cudaMalloc((void **)&csrValA, nnz * sizeof(double));
-    cudaMalloc((void **)&b, n * sizeof(double));
-    cudaMalloc((void **)&x, n * sizeof(double));
-    cudaMalloc((void **)&csrRowPtrA, (n + 1) * sizeof(int));
-    cudaMalloc((void **)&csrColIndA, nnz * sizeof(int));
+    // cudaMalloc((void **)&csrValA, nnz * sizeof(double));
+    // cudaMalloc((void **)&b, n * sizeof(double));
+    // cudaMalloc((void **)&csrRowPtrA, (n + 1) * sizeof(int));
+    // cudaMalloc((void **)&csrColIndA, nnz * sizeof(int));
 
-    cudaMemcpy(csrValA, mat->values, nnz * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(b, B, n * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(csrRowPtrA, mat->row_idx, (n + 1) * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(csrColIndA, mat->col_idx, nnz * sizeof(double), cudaMemcpyHostToDevice);
-
-    // cusolverSpDcsrlsvluHost(
-    //     cusolverHandle,
-    //     n,
-    //     nnz,
-    //     descrA,
-    //     csrValA,
-    //     csrRowPtrA,
-    //     csrColIndA,
-    //     b,
-    //     tolerance,
-    //     reorder,
-    //     x,
-    //     singularity);
+    // cudaMemcpy(csrValA, mat->values, nnz * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(b, B->values, n * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(csrRowPtrA, mat->row_idx, (n + 1) * sizeof(double), cudaMemcpyHostToDevice);
+    // cudaMemcpy(csrColIndA, mat->col_idx, nnz * sizeof(double), cudaMemcpyHostToDevice);
 
     error = cusolverSpDcsrlsvluHost(
         cusolverHandle,
@@ -137,29 +67,54 @@ int main()
         mat->values,
         mat->row_idx,
         mat->col_idx,
-        B,
+        B->values,
         tolerance,
         reorder,
-        Xcalculated,
+        X,
         singularity);
 
-    // cudaMemcpy(x, Xcalculated, sizeof(double) * n, cudaMemcpyDeviceToHost);
 
-    saveVector(filenameSol, mat->size, Xcalculated);
-
-    cudaFree(csrValA);
-    cudaFree(b);
-    cudaFree(x);
-    cudaFree(csrRowPtrA);
-    cudaFree(csrColIndA);
+    // cudaFree(csrValA);
+    // cudaFree(b);
+    // cudaFree(x);
+    // cudaFree(csrRowPtrA);
+    // cudaFree(csrColIndA);
 
     cusolverSpDestroy(cusolverHandle);
 
-    if (compareVectors(n,Xcalculated,X,1e-5))
-        printf("Solution is True\n");
-    else
-        printf("Solution is False\n");
+    //printf("Singularity is %d\n",singularity);
+    //printf("Status is %s\n",cudaGetErrorEnum(error));
+}
 
-    printf("Singularity is %d\n",singularity);
-    printf("Status is %s\n",cudaGetErrorEnum(error));
+int main(int argc, char** argv){
+     char *matrixName;
+    if (argc == 1)
+        matrixName = "data/e20r0000";
+    else
+        matrixName = argv[1];
+    char *filename = (char *)malloc(40 * sizeof(char));
+    char *filenameB = (char *)malloc(40 * sizeof(char));
+    char *filenameSol = (char *)malloc(40 * sizeof(char));
+
+    sprintf(filename, "%s.mtx", matrixName);
+    sprintf(filenameB, "%s_rhs1.mtx", matrixName);
+
+    SparseMatrix *sparse = (SparseMatrix *)malloc(sizeof(SparseMatrix));
+    Vector *B = (Vector *)malloc(sizeof(Vector));
+
+    readSparseMMMatrix(filename, sparse);
+    readMMVector(filenameB, B);
+
+    double *X = (double *)malloc(B->size * sizeof(double));
+
+    struct timeval start = tic();
+
+    solveSystemSparse(sparse, B, X);
+
+    printf("Sparse time is %f\n", toc(start));
+
+    readSparseMMMatrix(filename, sparse);    // overwrite factorized matrix to get original values for evaluation
+    checkSolutionSparse(sparse, B, X, 0); // calculate |Ax-b|
+    saveVector("Sparse.txt",B->size,X);
+
 }

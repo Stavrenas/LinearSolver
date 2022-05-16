@@ -14,40 +14,9 @@ extern "C"
 {
 #include "utilities.h"
 #include "read.h"
+#include "cudaUtilities.h"
 }
 
-static const char *cudaGetErrorEnum(cusolverStatus_t error)
-{
-    switch (error)
-    {
-    case CUSOLVER_STATUS_SUCCESS:
-        return "CUSOLVER_STATUS_SUCCESS";
-    case CUSOLVER_STATUS_NOT_INITIALIZED:
-        return "CUSOLVER_STATUS_NOT_INITIALIZED";
-    case CUSOLVER_STATUS_ALLOC_FAILED:
-        return "CUSOLVER_STATUS_ALLOC_FAILED";
-    case CUSOLVER_STATUS_INVALID_VALUE:
-        return "CUSOLVER_STATUS_INVALID_VALUE";
-    case CUSOLVER_STATUS_ARCH_MISMATCH:
-        return "CUSOLVER_STATUS_ARCH_MISMATCH";
-    case CUSOLVER_STATUS_MAPPING_ERROR:
-        return "CUSOLVER_STATUS_MAPPING_ERROR";
-    case CUSOLVER_STATUS_EXECUTION_FAILED:
-        return "CUSOLVER_STATUS_EXECUTION_FAILED";
-    case CUSOLVER_STATUS_INTERNAL_ERROR:
-        return "CUSOLVER_STATUS_INTERNAL_ERROR";
-    case CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED:
-        return "CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED";
-    case CUSOLVER_STATUS_NOT_SUPPORTED:
-        return "CUSOLVER_STATUS_NOT_SUPPORTED ";
-    case CUSOLVER_STATUS_ZERO_PIVOT:
-        return "CUSOLVER_STATUS_ZERO_PIVOT";
-    case CUSOLVER_STATUS_INVALID_LICENSE:
-        return "CUSOLVER_STATUS_INVALID_LICENSE";
-    }
-
-    return "<unknown>";
-}
 
 void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
 {
@@ -68,7 +37,7 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
     cusolverDnIRSParamsCreate(&params);
     cusolverDnIRSParamsSetSolverPrecisions(params, CUSOLVER_R_64F, CUSOLVER_R_32F); // main and lowest solver precision
     cusolverDnIRSParamsSetRefinementSolver(params, CUSOLVER_IRS_REFINE_CLASSICAL);
-    cusolverDnIRSParamsSetTol(params, 1e-8);
+    cusolverDnIRSParamsSetTol(params, 1e-12);
     /*This function sets the tolerance for the refinement solver. By default it is such that all the RHS satisfy:
 
         RNRM < SQRT(N)*XNRM*ANRM*EPS*BWDMAX where
@@ -80,7 +49,7 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
     */
 
 
-    cusolverDnIRSParamsSetTolInner(params, 1e-10);    // default value is 1e-4
+    cusolverDnIRSParamsSetTolInner(params, 1e-4);    // default value is 1e-4
     cusolverDnIRSParamsSetMaxIters(params, 50);      // default value is 50
     cusolverDnIRSParamsSetMaxItersInner(params, 50); // default value is 50
     cusolverDnIRSParamsDisableFallback(params); //by default enabled
@@ -186,4 +155,5 @@ int main(int argc, char *argv[])
 
     sparseToDense(sparse, dense);    // overwrite factorized matrix to get original values for evaluation
     checkSolutionDense(dense, B, X, 0); // calculate |Ax-b|
+    saveVector("Dense.txt",B->size,X);
 }
