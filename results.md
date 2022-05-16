@@ -4,7 +4,7 @@ The following results are derived from the solution of Ax = B.
 
 For a square 273 * 273 matrix with double precision elements.
 
-For a 1000x1000 matrix we have:
+For a 1000x1000 matrix (8.000.000 bytes) we have:
 
 | Type of function   | Main precision | Lowest precision | Workspace Size | Iterations | 100 runs average | min Threshold |
 | ------------------ | -------------- | ---------------- | -------------- | ---------- | ---------------- | ------------- |
@@ -13,7 +13,7 @@ For a 1000x1000 matrix we have:
 | cusolverDnIRSXgesv | double         | half             | 12.609.152     | 1          | 548.72 ms        | 1e-7          |
 | CPU                | double         | double           | x              | x          | 15.47 ms         | x             |
 
-For a 4241x4241 matrix we have:
+For a 4241x4241 matrix (143.888.648 bytes) we have:
 
 | Type of function   | Main precision | Lowest precision | Workspace Size | Iterations | 100 runs average | min Threshold |
 | ------------------ | -------------- | ---------------- | -------------- | ---------- | ---------------- | ------------- |
@@ -22,7 +22,7 @@ For a 4241x4241 matrix we have:
 | cusolverDnIRSXgesv | double         | half             | 162.392.960    | 5          | 720.32 ms        | 1e-4          |
 | CPU                | double         | double           | x              | x          | 423.22 ms        | x             |
 
-For a 9287x9287 matrix we have:
+For a 9287x9287 matrix (689.986.952 bytes) we have:
 
 | Type of function   | Main precision | Lowest precision | Workspace Size | Iterations | 100 runs average |
 | ------------------ | -------------- | ---------------- | -------------- | ---------- | ---------------- |
