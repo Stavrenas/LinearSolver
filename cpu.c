@@ -106,5 +106,9 @@ int main(int argc, char *argv[])
     // clearVector(B);
     // free(Bcopy);
 
+    printDenseMatrix(dense);
+
+    saveVector("Cpu.txt",B->size,X);
+
     return 0;
 }
