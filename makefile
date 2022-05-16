@@ -8,9 +8,9 @@ all: cpu gpu gpu_sparse
 cpu: cpu.c utilities.c mmio.c read.c
 	$(CC) -o $@ $^ $(CFLAGS)
 
-gpu: gpu.cu utilities.c mmio.c read.c
+gpu: gpu.cu utilities.c mmio.c read.c cudaUtilities.cu
 	$(NVCC) $^ -o $@  $(CUDA)
 
-gpu_sparse: gpu_sparse.cu utilities.c mmio.c read.c
+gpu_sparse: gpu_sparse.cu cudaUtilities.cu utilities.c mmio.c read.c 
 	$(NVCC) -o $@ $^ $(CUDA) -lcusparse
 	
