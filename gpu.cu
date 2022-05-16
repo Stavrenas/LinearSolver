@@ -153,6 +153,7 @@ int main(int argc, char *argv[])
 
     printf("Iterative refinement time is %f\n", toc(start));
 
+    readSparseMMMatrix(filename, sparse);
     sparseToDense(sparse, dense);    // overwrite factorized matrix to get original values for evaluation
     checkSolutionDense(dense, B, X, 0); // calculate |Ax-b|
     saveVector("Dense.txt",B->size,X);

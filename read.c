@@ -97,9 +97,12 @@ void printSparseMatrix(SparseMatrix *res)
 
 void printDenseMatrix(DenseMatrix *mat)
 {
-    for (int i = 0; i < mat->size; i++)
+    int size = mat->size;
+    if (size > 10)
+    size = 10;
+    for (int i = 0; i < size; i++)
     {
-        for (int j = 0; j < mat->size; j++)
+        for (int j = 0; j < size; j++)
             printf("(%d,%d): %e ", i, j, mat->values[i * mat->size + j]);
 
         printf("\n");

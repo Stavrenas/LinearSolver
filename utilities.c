@@ -390,7 +390,7 @@ void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X, double thres)
 
     double *Bcalculated = (double *)malloc(B->size * sizeof(double));
 
-    /* Calculate Ax = B , given solution vector X*/
+    /* Calculate  B = Ax , given solution vector X*/
     for (int i = 0; i < mtrx->size; i++)
     {
         int start = mtrx->row_idx[i];
@@ -407,21 +407,17 @@ void checkSolutionSparse(SparseMatrix *mtrx, Vector *B, double *X, double thres)
 
 void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X, double thres)
 {
-    int size = mtrx->size;
+    int size = B->size;
     double *Bcalculated = (double *)malloc(size * sizeof(double));
 
-    /* Calculate Ax = B , given solution vector X*/
+    /* Calculate B = Ax , given solution vector X*/
     for (int i = 0; i < size; i++)
     {
         Bcalculated[i] = 0;
-        // printf("B[%d] = ",i);
         for (int j = 0; j < size; j++)
         {
             //printf(" %.2f * %.2f +", mtrx->values[i * size + j], X[j]);
             Bcalculated[i] += mtrx->values[i * size + j] * X[j];
-
-            // if(mtrx->values[i*size+j]!=0)
-            // printf("X is %f ",mtrx->values[i*size+j]);
         }
         // printf("\n");
     }
