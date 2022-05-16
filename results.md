@@ -2,7 +2,7 @@
 
 The following results are derived from the solution of Ax = B.
 
-Fora square 273 \* 273 matrix with double precision elements.
+For a square 273 * 273 matrix with double precision elements.
 
 For a 1000x1000 matrix we have:
 
@@ -33,7 +33,7 @@ For a 9287x9287 matrix we have:
 
 ## Effect of tolerance
 
-The default internal tolerance is 1e-8. These results are derived form the last linear system.
+The default tolerance is 1e-8. These results are derived form the last linear system.
 
 ### Single precision arithmetic
 
