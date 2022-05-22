@@ -1,7 +1,8 @@
 #ifndef CUDAUTILITIES_H
 #define CUDAUTILITIES_H
 #include <cusolverDn.h>
+#include <cusparse_v2.h>
 
-const char *cudaGetErrorEnum(cusolverStatus_t error);
+__global__ void floatToDoubleVector(float *left, double *right);
 
 #endif

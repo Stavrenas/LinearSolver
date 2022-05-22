@@ -416,7 +416,7 @@ void checkSolutionDense(DenseMatrix *mtrx, Vector *B, double *X, double thres)
         Bcalculated[i] = 0;
         for (int j = 0; j < size; j++)
         {
-            //printf(" %.2f * %.2f +", mtrx->values[i * size + j], X[j]);
+            // printf(" %.2f * %.2f +", mtrx->values[i * size + j], X[j]);
             Bcalculated[i] += mtrx->values[i * size + j] * X[j];
         }
         // printf("\n");
@@ -466,4 +466,12 @@ void clearSparse(SparseMatrix *matrix)
 void clearVector(Vector *vec)
 {
     free(vec->values);
+}
+
+int maxInt(int a, int b)
+{
+    if (a > b)
+        return a;
+    else
+        return b;
 }

@@ -1,0 +1,37 @@
+void read_from_file(
+  const std::string& adb, math::aux::csr::ref_t<double,int,int64_t>& K, math::aux::dense::ref_t<double,int>& B,
+  math::aux::dense::ref_t<double,int>& U
+){
+  FILE* ptr = fopen(adb.c_str(),"rb");
+
+  int nrows,nnz;
+  fread(&nrows,sizeof(int),1,ptr);
+  fread(&nnz,sizeof(int),1,ptr);
+
+  fmt::print("nrows: {} and nnz: {}\n",nrows,nnz);
+  K.nrows = nrows;
+  K.ncols = nrows;
+  U.nrows = nrows;
+  U.ncols = 1;
+  B.nrows = nrows;
+  B.ncols = 1;
+
+  K.row_ptr = std::make_unique<int64_t[]>(nrows+1);
+  K.col_idx = std::make_unique<int[]>(nnz);
+  K.values = std::make_unique<double[]>(nnz);
+  B.values = std::make_unique<double[]>(nrows);
+  U.values = std::make_unique<double[]>(nrows);
+
+  if (size_t ret = fread(K.row_ptr.get(),sizeof(int64_t),nrows+1,ptr) != nrows+1) fmt::print("Error in write: {}\n",ret);
+  if (size_t ret = fread(K.col_idx.get(),sizeof(int),nnz,ptr) != nnz) fmt::print("Error in write: {}\n",ret);
+  if (size_t ret = fread(K.values.get(),sizeof(double),nnz,ptr) != nnz) fmt::print("Error in write: {}\n",ret);
+
+  if (size_t ret = fread(B.values.get(),sizeof(double),nrows,ptr) != nrows) fmt::print("Error in write: {}\n",ret);
+  if (size_t ret = fread(U.values.get(),sizeof(double),nrows,ptr) != nrows) fmt::print("Error in write: {}\n",ret);
+
+  fclose(ptr);
+}
+
+Nnnz: 13180992 and U nrows: 323856
+|K|: 1.9953992174455153e+18
+|U|: 1110.8216836088932 and |B|: 13680838.253389986

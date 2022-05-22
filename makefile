@@ -1,7 +1,7 @@
 CC = gcc
 NVCC = nvcc
-CFLAGS = -g -Wall -llapacke -llapack
-CUDA = -lcublas -lcusolver
+CFLAGS = -g -Wall -llapacke -llapack -lm
+CUDA = -lcublas -lcusolver -lcusparse -g -G
 
 all: cpu gpu gpu_sparse
 
@@ -12,5 +12,5 @@ gpu: gpu.cu utilities.c mmio.c read.c cudaUtilities.cu
 	$(NVCC) $^ -o $@  $(CUDA)
 
 gpu_sparse: gpu_sparse.cu cudaUtilities.cu utilities.c mmio.c read.c 
-	$(NVCC) -o $@ $^ $(CUDA) -lcusparse
+	$(NVCC) -o $@ $^ $(CUDA)
 	

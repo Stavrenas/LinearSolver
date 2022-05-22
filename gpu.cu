@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <sys/time.h>
-
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cusolverDn.h>

@@ -52,4 +52,6 @@ void clearSparse(SparseMatrix *matrix);
 
 void clearVector(Vector *vec);
 
+int maxInt(int a, int b);
+
 #endif
