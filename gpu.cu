@@ -103,7 +103,7 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
     cusolverDnIRSInfosGetNiters(infos, &n_iters);
 
     printf("Iters: %d\n", n_iters);
-    printf("Size of Workspace: %d\n", Lwork);
+    printf("Size of Workspace: %ld\n", Lwork);
 
     cudaMemcpy(X, Xcuda, sizeof(double) * size, cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 
     char *matrixName;
     if (argc == 1)
-        matrixName = "data/e20r0000";
+        matrixName = "data/sherman1";
     else
         matrixName = argv[1];
     char *filename = (char *)malloc(40 * sizeof(char));

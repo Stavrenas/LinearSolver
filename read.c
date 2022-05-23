@@ -76,6 +76,61 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
     Mtrx->size = M;
 }
 
+void readBinaryMatrix(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector* X){
+    FILE *ptr = fopen(file_path, "rb");
+    if (ptr == NULL)
+    {
+        printf("Error finding file\n");
+        return;
+    }
+    int nrows, nnz;
+    fread(&nrows, sizeof(int), 1, ptr);
+    fread(&nnz, sizeof(int), 1, ptr);
+
+    printf("nrows: %d and nnz: %d\n", nrows, nnz);
+    Mtrx->size = nrows;
+    B->size = nrows;
+    X->size = nrows;
+
+    double *matrixValues = (double *)malloc(nnz * sizeof(double));
+    double *vectorValuesB = (double *)malloc(nrows * sizeof(double));
+    double *vectorValuesX = (double *)malloc(nrows * sizeof(double));
+    int64_t *row_ptr64 = (int64_t *)malloc((nrows + 1) * sizeof(int64_t));
+    int *col_idx = (int *)malloc(nnz * sizeof(int));
+
+    size_t ret = fread(row_ptr64, sizeof(int64_t), nrows + 1, ptr);
+    if (ret != nrows + 1)
+        printf("Error in read: %ld\n", ret);
+    
+    ret = fread(col_idx, sizeof(int), nnz, ptr);
+    if (ret != nnz)
+        printf("Error in read: %ld\n", ret);
+    
+    ret = fread(matrixValues, sizeof(double), nnz, ptr);
+    if (ret != nnz)
+        printf("Error in read: %ld\n", ret);
+    
+    ret = fread(vectorValuesB, sizeof(double), nrows, ptr);
+    if (ret != nrows)
+        printf("Error in read: %ld\n", ret);
+    
+    ret = fread(vectorValuesX, sizeof(double), nrows, ptr);
+    if (ret != nrows)
+        printf("Error in read: %ld\n", ret);
+
+    int *row_ptr = (int*)malloc((nrows+1)*sizeof(int));
+    for(int i =0; i< nrows+1; i++)
+        row_ptr[i] = row_ptr64[i];
+
+    Mtrx->values = matrixValues;
+    Mtrx->row_idx = row_ptr;
+    Mtrx->col_idx = col_idx;
+
+    B->values = vectorValuesB;
+    X->values = vectorValuesX;
+
+    fclose(ptr);
+}
 void printSparseMatrix(SparseMatrix *res)
 {
     int nnz = res->row_idx[res->size];

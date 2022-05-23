@@ -18,4 +18,6 @@ int readVector(char *filename, int size, double *array);
 
 void readMMVector(char *filename, Vector *vec);
 
+void readBinaryMatrix(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector *X);
+
 #endif // READ_H
