@@ -123,7 +123,7 @@ void iterativeRefinementGeneral(DenseMatrix *A, Vector *B, double *X)
 int main(int argc, char *argv[])
 {
 
-    char *matrixName;
+    const char *matrixName;
     if (argc == 1)
         matrixName = "data/sherman1";
     else

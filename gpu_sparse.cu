@@ -46,14 +46,14 @@ void solveSystemSparse(SparseMatrix *mat, Vector *B, double *X)
     cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
 
-    // error = cusolverSpDcsrlsvluHost(
-    //     cusolverHandle, n, nnz, descrA,
-    //     mat->values,
-    //     mat->row_idx,
-    //     mat->col_idx,
-    //     B->values,
-    //     tol, // tolerance to determine matrix singularity
-    //     reorder, X, &singularity);
+    error = cusolverSpDcsrlsvluHost(
+        cusolverHandle, n, nnz, descrA,
+        mat->values,
+        mat->row_idx,
+        mat->col_idx,
+        B->values,
+        tol, // tolerance to determine matrix singularity
+        reorder, X, &singularity);
 
     cusolverSpDestroy(cusolverHandle);
 
@@ -72,10 +72,14 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
     float *host_float_rhs = (float *)malloc(n * sizeof(float));
     double *zeros = (double *)malloc(n * sizeof(double));
 
-    int maxThreads, blocks;
-    if (nnz > 512)
+    float *tempf = (float *)malloc(nnz * sizeof(float));
+    double *tempd = (double *)malloc(nnz * sizeof(double));
+
+    int maxThreads, blocks, threads;
+    threads = 256;
+    if (nnz > threads)
     {
-        maxThreads = 512;
+        maxThreads = threads;
         blocks = nnz / maxThreads + 1;
     }
     else
@@ -83,6 +87,7 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
         blocks = 1;
         maxThreads = nnz;
     }
+    blocks = 1;
     for (int i = 0; i < n; i++)
     {
         host_float_rhs[i] = B->values[i];
@@ -106,47 +111,47 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
 
     // ALLOCATE MEMORY
     double *Xcalculated = (double *)malloc(n * sizeof(double));
-    float *Xcalculatedf = (float *)malloc(n * sizeof(float));
+    double *temp = (double *)malloc(nnz * sizeof(double));
     double *Lvalues, *Uvalues, *Avalues, *solution, *rhs, *rhsCopy, *temp_solutionX, *temp_solutionY;
     float *f_values;
     int *rowPtr, *colIdx, *rowPtrCopy, *colIdxCopy;
 
-    cudaMalloc((void **)&Lvalues, nnz * sizeof(double));
-    cudaMalloc((void **)&Uvalues, nnz * sizeof(double));
-    cudaMalloc((void **)&Avalues, nnz * sizeof(double));
+    checkCudaErrors(cudaMalloc((void **)&Uvalues, nnz * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&Lvalues, nnz * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&Avalues, nnz * sizeof(double)));
 
-    cudaMalloc((void **)&rhs, n * sizeof(double));
-    cudaMalloc((void **)&rhsCopy, n * sizeof(double));
+    checkCudaErrors(cudaMalloc((void **)&rhs, n * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&rhsCopy, n * sizeof(double)));
 
-    cudaMalloc((void **)&solution, n * sizeof(double));
-    cudaMalloc((void **)&temp_solutionX, n * sizeof(double));
-    cudaMalloc((void **)&temp_solutionY, n * sizeof(double));
+    checkCudaErrors(cudaMalloc((void **)&solution, n * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&temp_solutionX, n * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&temp_solutionY, n * sizeof(double)));
 
-    cudaMalloc((void **)&f_values, nnz * sizeof(float));
+    checkCudaErrors(cudaMalloc((void **)&f_values, nnz * sizeof(float)));
 
-    cudaMalloc((void **)&rowPtr, (n + 1) * sizeof(int));
-    cudaMalloc((void **)&rowPtrCopy, (n + 1) * sizeof(int));
-    cudaMalloc((void **)&colIdx, nnz * sizeof(int));
-    cudaMalloc((void **)&colIdxCopy, nnz * sizeof(int));
+    checkCudaErrors(cudaMalloc((void **)&rowPtr, (n + 1) * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void **)&rowPtrCopy, (n + 1) * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void **)&colIdx, nnz * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void **)&colIdxCopy, nnz * sizeof(int)));
 
     // COPY MATRIX A TO DEVICE MEMORY
-    cudaMemcpy(rowPtr, mat->row_idx, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(colIdx, mat->col_idx, nnz * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(rowPtrCopy, rowPtr, (n + 1) * sizeof(int), cudaMemcpyDeviceToDevice);
-    cudaMemcpy(colIdxCopy, colIdx, nnz * sizeof(int), cudaMemcpyDeviceToDevice);
+    checkCudaErrors(cudaMemcpy(rowPtr, mat->row_idx, (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(colIdx, mat->col_idx, nnz * sizeof(int), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(rowPtrCopy, rowPtr, (n + 1) * sizeof(int), cudaMemcpyDeviceToDevice));
+    checkCudaErrors(cudaMemcpy(colIdxCopy, colIdx, nnz * sizeof(int), cudaMemcpyDeviceToDevice));
 
     // COPY FLOAT MATRIX ELEMENTS
-    cudaMemcpy(f_values, host_float_values, nnz * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(Avalues, mat->values, nnz * sizeof(double), cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy(f_values, host_float_values, nnz * sizeof(float), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(Avalues, mat->values, nnz * sizeof(double), cudaMemcpyHostToDevice));
 
     // COPY FLOAT B ELEMENTS
     // cudaMemcpy(rhs, B->values, n, cudaMemcpyHostToDevice);
-    cudaMemcpy(rhs, B->values, n * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(rhsCopy, rhs, n * sizeof(double), cudaMemcpyDeviceToDevice);
+    checkCudaErrors(cudaMemcpy(rhs, B->values, n * sizeof(double), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(rhsCopy, rhs, n * sizeof(double), cudaMemcpyDeviceToDevice));
 
     // INIT EMPTY VECTOR
-    cudaMemcpy(temp_solutionX, zeros, n * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(temp_solutionY, temp_solutionX, n * sizeof(double), cudaMemcpyDeviceToDevice);
+    checkCudaErrors(cudaMemcpy(temp_solutionX, zeros, n * sizeof(double), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(temp_solutionY, temp_solutionX, n * sizeof(double), cudaMemcpyDeviceToDevice));
 
     // FREE HOST MEMORY
     free(host_float_rhs);
@@ -171,16 +176,19 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
 
     double tole = 0;
     float boost = 1e-8;
-    cusparseScsrilu02_numericBoost(sparseHandle, LUinfo, 1, &tole, &boost);
+    checkCudaErrors(cusparseScsrilu02_numericBoost(sparseHandle, LUinfo, 1, &tole, &boost));
 
+    printf("Buffer size..\n");
     // CALCULATE LU FACTORIZATION BUFFER SIZE
+
     checkCudaErrors(cusparseScsrilu02_bufferSize(sparseHandle, n, nnz, descrA,
                                                  f_values, rowPtr, colIdx, LUinfo, &pBufferSize));
 
-    cudaMalloc(&pBuffer, pBufferSize);
+    checkCudaErrors(cudaMalloc(&pBuffer, pBufferSize));
     // pBuffer returned by cudaMalloc is automatically aligned to 128 bytes
-    // printf("Buffer size for LU is %d\n",pBufferSize);
+    printf("Buffer size for LU is %d\n",pBufferSize);
 
+    printf("Analysis..\n");
     // LU FACTORIZATION ANALYSIS
     checkCudaErrors(cusparseScsrilu02_analysis(sparseHandle, n, nnz, descrA,
                                                f_values, rowPtr, colIdx, LUinfo, policy, pBuffer));
@@ -191,21 +199,50 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
     if (CUSPARSE_STATUS_ZERO_PIVOT == status)
         printf("A(%d,%d) is missing\n", structural_zero, structural_zero);
 
+    printf("Factorization..\n");
     // A = L * U
     checkCudaErrors(cusparseScsrilu02(sparseHandle, n, nnz, descrA,
                                       f_values, rowPtr, colIdx, LUinfo, policy, pBuffer));
 
-    // f_values now contain L U matrices
-
+    //f_values now contain L U matrices
     cusparseDestroyMatDescr(descrA);
     cudaFree(pBuffer);
     cusparseDestroyCsrilu02Info(LUinfo);
+    cudaError_t err;
 
-    floatToDoubleVector<<<blocks, maxThreads>>>(f_values, Lvalues);
-    cudaMemcpy(Uvalues, Lvalues, nnz * sizeof(double), cudaMemcpyDeviceToDevice);
-    cudaDeviceSynchronize();
+    printf("Convert to double..\n");
 
-    cudaFree(f_values);
+    //DEVICE TYPECAST
+    //floatToDoubleVector<<<blocks, maxThreads>>>(f_values, Lvalues, nnz);
+
+    // OR HOST TYPECAST
+    cudaMemcpy(host_float_values, f_values, nnz * sizeof(float),cudaMemcpyDeviceToHost);
+
+    for(int i = 0; i< nnz; i++)
+        tempd[i] = host_float_values[i];
+
+    cudaMemcpy(Lvalues, tempd, nnz * sizeof(double), cudaMemcpyHostToDevice);
+
+    
+    checkCudaErrors(cudaMemcpy(Uvalues, Lvalues, nnz * sizeof(double), cudaMemcpyDeviceToDevice));
+    checkCudaErrors(cudaMemcpy(temp, Lvalues, nnz * sizeof(double), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(tempf, f_values, nnz * sizeof(float), cudaMemcpyDeviceToHost));
+
+
+    // for (int i = 0; i < 3; i++)
+    //     printf("%e ", temp[i]);
+    // printf(" ... ");
+    // for (int i = nnz - 3; i < nnz; i++)
+    //     printf("%e ", temp[i]);
+
+    // printf("\n");
+    // for (int i = 0; i < 3; i++)
+    //     printf("%e ", tempf[i]);
+    // printf(" ... ");
+    // for (int i = nnz - 3; i < nnz; i++)
+    //     printf("%e ", tempf[i]);
+
+    printf("\ndone converting..\n");
 
     cusparseSpMatDescr_t descrL, descrU, descrACopy;
     // Create a copy of A to calculate residual r = b - Ax
@@ -217,6 +254,7 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
 
     cusparseCreateCsr(&descrU, n, n, nnz, rowPtr, colIdx, Uvalues, CUSPARSE_INDEX_32I,
                       CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
+    printf("Set attributes..\n");
 
     cusparseFillMode_t lower = CUSPARSE_FILL_MODE_LOWER;
     cusparseDiagType_t unit = CUSPARSE_DIAG_TYPE_UNIT;
@@ -228,9 +266,6 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
 
     cusparseSpMatSetAttribute(descrU, CUSPARSE_SPMAT_FILL_MODE, (void *)&upper, sizeof(upper));
     cusparseSpMatSetAttribute(descrU, CUSPARSE_SPMAT_DIAG_TYPE, (void *)&nonUnit, sizeof(nonUnit));
-
-    // cusparseSpMatSetAttribute(descrU, CUSPARSE_SPMAT_FILL_MODE, &lower, sizeof(lower)); // THIS WORKS
-    // cusparseSpMatSetAttribute(descrU, CUSPARSE_SPMAT_DIAG_TYPE, &unit, sizeof(unit));
 
     // INITIALIZE B,X,Y VECTOR DESCRIPTORS
     cusparseDnVecDescr_t descrX, descrY, descrB;
@@ -245,24 +280,33 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
     cusparseSpSV_createDescr(&spsvDescrU);
     double plusOne = 1.0;
 
+    printf("SpSv analysisL.. \n");
     checkCudaErrors(cusparseSpSV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
                                             descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL, &spSvBufferSizeL));
-    checkCudaErrors(cusparseSpSV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
-                                            descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU, &spSvBufferSizeU));
 
-    cudaMalloc((void **)&spSvBufferU, spSvBufferSizeU);
     cudaMalloc((void **)&spSvBufferL, spSvBufferSizeL);
+    printf("spSvBufferSizeL: %ld\n", spSvBufferSizeL);
+
 
     checkCudaErrors(cusparseSpSV_analysis(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
                                           descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL, spSvBufferL));
 
+    printf("SpSv analysisU.. \n");
+    checkCudaErrors(cusparseSpSV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
+                                            descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU, &spSvBufferSizeU));
+    cudaMalloc((void **)&spSvBufferU, spSvBufferSizeU);
+    printf("spSvBufferSizeU: %ld\n", spSvBufferSizeU);
+
+
     checkCudaErrors(cusparseSpSV_analysis(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
                                           descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU, spSvBufferU));
 
+    printf("SpSv solve L.. \n");
     // solve L*y = b
     checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
                                        descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL));
 
+    printf("SpSv solve U.. \n");
     // solve U*x = y
     checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
                                        descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU));
@@ -272,10 +316,11 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
     //     printf("%e ", X[j]);
     // printf("\n");
 
+    printf("enter loop\n");
 
     for (int i = 0; i < maxIters; i++)
     {
-        
+
         double minusOne = -1.0;
         double one = 1.0;
         size_t spMvBufferSize = 0;
@@ -290,29 +335,43 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
         double resNormm, bNorm;
         cublasDnrm2(blasHandle, n, rhs, 1, &resNormm);
         cublasDnrm2(blasHandle, n, rhsCopy, 1, &bNorm);
-        printf("res Norm is %e, b norm is %f and div is %e , buff is %ld  \n", resNormm, bNorm, resNormm / bNorm, spMvBufferSize);
 
-
-        if ((resNormm / bNorm) < tolerance){
+        if ((resNormm / bNorm) < tolerance)
+        {
             printf("Iters: %d\n", i);
             break;
         }
-            // solve L*y = r : B contains the residual
-            checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
-                                               descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL));
+        // solve L*y = r : B contains the residual
+        checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
+                                           descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL));
 
-            // solve U*c = y
-            checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
-                                               descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU));
-            // Xn+1 = Xn + Cn
-            cublasDaxpy(blasHandle, n, &one, temp_solutionX, 1, solution, 1);
-            cudaMemcpy(temp_solutionX, solution, n * sizeof(double), cudaMemcpyDeviceToDevice);
+        // solve U*c = y
+        checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
+                                           descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU));
+        // Xn+1 = Xn + Cn
+        cublasDaxpy(blasHandle, n, &one, temp_solutionX, 1, solution, 1);
+        cudaMemcpy(temp_solutionX, solution, n * sizeof(double), cudaMemcpyDeviceToDevice);
 
-            // restore B values
-            cudaMemcpy(rhs, rhsCopy, n * sizeof(double), cudaMemcpyDeviceToDevice);
+        // restore B values
+        cudaMemcpy(rhs, rhsCopy, n * sizeof(double), cudaMemcpyDeviceToDevice);
+
+        if (i % 100 == 0)
+        {
+            printf("i is %d ", i);
+            printf("res Norm is %e, ", resNormm);
+            printf("b norm is %f ", bNorm);
+            printf("buff is %ld ", spMvBufferSize);
+            printf("div is %e \n", resNormm / bNorm);
+            // cudaMemcpy(X, temp_solutionX, n * sizeof(double), cudaMemcpyHostToDevice);
+            // for (int i = 0; i < 2; i++)
+            //     printf("%e ", X[i]);
+            // printf("... ");
+            // for (int i = nnz - 2; i < nnz; i++)
+            //     printf("%e ", X[i]);
+        }
     }
 
-    //TRANSFER SOLUTION TO X VECTOR
+    // TRANSFER SOLUTION TO X VECTOR
     cudaMemcpy(X, temp_solutionX, n * sizeof(double), cudaMemcpyHostToDevice);
 
     cusparseDestroyDnVec(descrX);
@@ -327,9 +386,9 @@ void solveSystemSparseIterative(SparseMatrix *mat, Vector *B, double *X, double 
     // FREE RESOURCES
 }
 
-int main2(int argc, char **argv)
+int main(int argc, char **argv)
 {
-    char *matrixName;
+    const char *matrixName;
     if (argc == 1)
         matrixName = "data/sherman1";
     else
@@ -351,56 +410,37 @@ int main2(int argc, char **argv)
 
     struct timeval start = tic();
 
-    // solveSystemSparse(sparse, B, X);
-    for(int i =0; i<10; i++)
-        solveSystemSparseIterative(sparse, B, X, 1e-13);
+    for (int i = 0; i < 1; i++)
+        solveSystemSparseIterative(sparse, B, X, 1e-12);
     printf("Sparse time is %f\n", toc(start));
 
-    // readSparseMMMatrix(filename, sparse); // overwrite factorized matrix to get original values for evaluation
-    // checkSolutionSparse(sparse, B, X, 0); // calculate |Ax-b|
     saveVector("Sparse.txt", B->size, X);
 
     return 0;
 }
 
-int main(int argc, char **argv)
+int main1(int argc, char **argv)
 {
-    char *matrixName = "na_bc.bin";
+    char *matrixName;
 
+    if (argc == 2)
+        matrixName = argv[1];
+    else
+        matrixName = "data/n10k.bin";
     SparseMatrix *sparse = (SparseMatrix *)malloc(sizeof(SparseMatrix));
     Vector *B = (Vector *)malloc(sizeof(Vector));
-    Vector *X = (Vector *)malloc(sizeof(Vector));
+    Vector *Xcorrect = (Vector *)malloc(sizeof(Vector));
+    double *X = (double *)malloc(sizeof(double));
+    readSystem(matrixName, sparse, B, Xcorrect);
 
-    readBinaryMatrix(matrixName,sparse, B, X);
+    printSparseMatrix(sparse);
 
     struct timeval start = tic();
-    cublasHandle_t blasHandle;
-    cublasCreate(&blasHandle);
-
-    int n = sparse->size;
-    int nnz = sparse->row_idx[n];
-
-    double *temp;
-    cudaMalloc((void **)&temp, nnz * sizeof(double));
-    cudaMemcpy(temp, B->values, n * sizeof(double), cudaMemcpyHostToDevice);
-
-    double norm;
-    cublasDnrm2(blasHandle, n, temp, 1, &norm);
-    printf("B norm is %e\n", norm);
-
-    cudaMemcpy(temp, X->values, n * sizeof(double), cudaMemcpyHostToDevice);
-
-    cublasDnrm2(blasHandle, n, temp, 1, &norm);
-    printf("x norm is %e\n", norm);
-
-    cudaMemcpy(temp, sparse->values, nnz * sizeof(double), cudaMemcpyHostToDevice);
-
-    cublasDnrm2(blasHandle, nnz, temp, 1, &norm);
-    printf("A norm is %e\n", norm);
 
     for (int i = 0; i < 1; i++)
-        solveSystemSparseIterative(sparse, B, X->values, 1e-8);
+        solveSystemSparseIterative(sparse, B, X, 1e-8);
     printf("Sparse time is %f\n", toc(start));
 
-    saveVector("X.txt", X->size, X->values);
+    saveVector("X.txt", B->size, X);
 }
+
