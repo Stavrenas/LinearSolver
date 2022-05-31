@@ -1,5 +1,3 @@
-#include <cblas.h>
-#include <lapacke.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -607,7 +605,7 @@ void solveMtx(int argc, char **argv)
     incompleteLU(sparse);
     printf("Cpu time is %f\n", toc(start));
 
-    saveVector("Sparse.txt", B->size, X);
+    saveVector("var/Sparse.txt", B->size, X);
 }
 
 // USED TO READ .bin FILES WHICH INCLUDE THE RIGHT HAND SIDE AND THE SOLUTION
@@ -634,7 +632,7 @@ void solveBin(int argc, char **argv)
     incompleteLU(sparse) ;
     printf("Sparse time is %f\n", toc(start));
 
-    saveVector("X.txt", B->size, X);
+    saveVector("var/X.txt", B->size, X);
 }
 
 int main(int argc, char **argv)

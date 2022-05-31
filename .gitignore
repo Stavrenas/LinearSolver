@@ -3,3 +3,6 @@
 cpu
 gpu
 gpu_sparse
+*.txt
+!read.txt
+!data/n10k.txt

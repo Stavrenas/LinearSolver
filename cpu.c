@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 
     // printDenseMatrix(dense);
 
-    saveVector("Cpu.txt", B->size, X);
+    saveVector("var/Cpu.txt", B->size, X);
 
     return 0;
 }

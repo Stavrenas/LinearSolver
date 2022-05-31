@@ -1,0 +1,80 @@
+FORTRAN CODE
+
+subroutine ilu0 (n, a, ja, ia, luval, uptr, iw, icode)
+integer n, ja(*), ia(n+1), uptr(n), iw(n)
+real*8 a(*), luval(*)
+c-----------------------------------------------------------
+c Set-up routine for ILU(0) preconditioner. This routine
+c computes the L and U factors of the ILU(0) factorization
+c of a general sparse matrix A stored in CSR format. Since
+c L is unit triangular, the L and U factors can be stored
+c as a single matrix which occupies the same storage as A.
+c The ja and ia arrays are not needed for the LU matrix
+c since the pattern of the LU matrix is identical with
+c that of A.
+c-----------------------------------------------------------
+
+310 CHAPTER 10. PRECONDITIONING TECHNIQUES
+c INPUT:
+c ------
+c n = dimension of matrix
+c a, ja, ia = sparse matrix in general sparse storage format
+c iw = integer work array of length n
+c OUTPUT:
+c -------
+c luval = L/U matrices stored together. On return luval,
+c ja, ia is the combined CSR data structure for
+c the LU factors
+c uptr = pointer to the diagonal elements in the CSR
+c data structure luval, ja, ia
+c icode = integer indicating error code on return
+c icode = 0: normal return
+c icode = k: encountered a zero pivot at step k
+c
+c-----------------------------------------------------------
+c initialize work array iw to zero and luval array to a
+do 30 i = 1, ia(n+1)-1
+luval(i) = a(i)
+
+30 continue
+do 31 i=1, n
+iw(i) = 0
+31 continue
+c----------------------- Main loop
+do 500 k = 1, n
+j1 = ia(k)
+j2 = ia(k+1)-1
+do 100 j=j1, j2
+iw(ja(j)) = j
+100 continue
+j=j1
+150 jrow = ja(j)
+c----------------------- Exit if diagonal element is reached
+if (jrow .ge. k) goto 200
+c----------------------- Compute the multiplier for jrow.
+tl = luval(j)*luval(uptr(jrow))
+luval(j) = tl
+c----------------------- Perform linear combination
+do 140 jj = uptr(jrow)+1, ia(jrow+1)-1
+jw = iw(ja(jj))
+if (jw .ne. 0) luval(jw)=luval(jw)-tl*luval(jj)
+
+140 continue
+j=j+1
+if (j .le. j2) goto 150
+c----------------------- Store pointer to diagonal element
+200 uptr(k) = j
+if (jrow .ne. k .or. luval(j) .eq. 0.0d0) goto 600
+luval(j) = 1.0d0/luval(j)
+c----------------------- Refresh all entries of iw to zero.
+do 201 i = j1, j2
+iw(ja(i)) = 0
+201 continue
+500 continue
+c----------------------- Normal return
+icode = 0
+return
+c----------------------- Error: zero pivot
+600 icode = k
+return
+end
