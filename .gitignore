@@ -1,5 +1,4 @@
 **/na_bc.bin
-data/
 .vscode/*
 cpu
 gpu
