@@ -1,0 +1,6 @@
+**/na_bc.bin
+data/
+.vscode/*
+cpu
+gpu
+gpu_sparse

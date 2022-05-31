@@ -16,7 +16,7 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
     FILE *f;
     int M, N, nz;
     uint32_t i, *I, *J;
-    double *coo_val,*csr_val;
+    double *coo_val, *csr_val;
 
     if ((f = fopen(file_path, "r")) == NULL)
     {
@@ -68,7 +68,7 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
     uint32_t *col_idx = (uint32_t *)malloc(nnz * sizeof(uint32_t));
 
     // Call coo2csr
-    coo2csr(row_idx, col_idx,csr_val, I, J, nnz, M,coo_val);
+    coo2csr(row_idx, col_idx, csr_val, I, J, nnz, M, coo_val);
 
     Mtrx->row_idx = row_idx;
     Mtrx->col_idx = col_idx;
@@ -76,7 +76,8 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
     Mtrx->size = M;
 }
 
-void readBinaryMatrix(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector* X){
+void readSystem(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector *X)
+{
     FILE *ptr = fopen(file_path, "rb");
     if (ptr == NULL)
     {
@@ -101,25 +102,25 @@ void readBinaryMatrix(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector* X)
     size_t ret = fread(row_ptr64, sizeof(int64_t), nrows + 1, ptr);
     if (ret != nrows + 1)
         printf("Error in read: %ld\n", ret);
-    
+
     ret = fread(col_idx, sizeof(int), nnz, ptr);
     if (ret != nnz)
         printf("Error in read: %ld\n", ret);
-    
+
     ret = fread(matrixValues, sizeof(double), nnz, ptr);
     if (ret != nnz)
         printf("Error in read: %ld\n", ret);
-    
+
     ret = fread(vectorValuesB, sizeof(double), nrows, ptr);
     if (ret != nrows)
         printf("Error in read: %ld\n", ret);
-    
+
     ret = fread(vectorValuesX, sizeof(double), nrows, ptr);
     if (ret != nrows)
         printf("Error in read: %ld\n", ret);
 
-    int *row_ptr = (int*)malloc((nrows+1)*sizeof(int));
-    for(int i =0; i< nrows+1; i++)
+    int *row_ptr = (int *)malloc((nrows + 1) * sizeof(int));
+    for (int i = 0; i < nrows + 1; i++)
         row_ptr[i] = row_ptr64[i];
 
     Mtrx->values = matrixValues;
@@ -131,30 +132,89 @@ void readBinaryMatrix(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector* X)
 
     fclose(ptr);
 }
+
+void saveSystem(char *filename, SparseMatrix *mtr, Vector *B, Vector *X)
+{
+    FILE *f;
+    int n = mtr->size;
+    int nnz = mtr->row_idx[mtr->size];
+    if ((f = fopen(filename, "w")) == NULL)
+        printf("Err\n");
+    fprintf(f, "Nrows: %d\n", n);
+    fprintf(f, "NNZ: %d\n", nnz);
+    fprintf(f, "K row ptr\n");
+    for (int i = 0; i <= n; i++)
+        fprintf(f, "%d\n", mtr->row_idx[i]);
+    fprintf(f, "K col idx\n");
+    for (int i = 0; i < nnz; i++)
+        fprintf(f, "%d\n", mtr->col_idx[i]);
+    fprintf(f, "K values\n");
+    for (int i = 0; i < nnz; i++)
+        fprintf(f, "%.6f\n", mtr->values[i]);
+    fprintf(f, "B\n");
+    for (int i = 0; i < n; i++)
+        fprintf(f, "%.6f\n", B->values[i]);
+    fprintf(f, "U\n");
+    for (int i = 0; i < n; i++)
+        fprintf(f, "%.6f\n", X->values[i]);
+    fclose(f);
+}
+
 void printSparseMatrix(SparseMatrix *res)
 {
     int nnz = res->row_idx[res->size];
-    printf("C->col_idx = [");
-    for (int i = 0; i < nnz; i++)
-        printf("%d ", res->col_idx[i]);
-    printf("] \n");
 
-    printf("C->row_idx = [");
-    for (int i = 0; i <= res->size; i++)
-        printf("%d ", res->row_idx[i]);
-    printf("] \n");
+    if (nnz < 10 || res->size < 10)
+    {
+        printf("C->col_idx = [ ");
+        for (int i = 0; i < nnz; i++)
+            printf("%d ", res->col_idx[i]);
+        printf("] \n");
 
-    printf("values = [");
-    for (int i = 0; i < nnz; i++)
-        printf("%e ", res->values[i]);
-    printf("] \n");
+        printf("C->row_idx = [ ");
+        for (int i = 0; i <= res->size; i++)
+            printf("%d ", res->row_idx[i]);
+        printf("] \n");
+
+        printf("values = [ ");
+        for (int i = 0; i < nnz; i++)
+            printf("%e ", res->values[i]);
+        printf("] \n");
+    }
+    else
+    {
+        int max = 3;
+        printf("C->col_idx = [ ");
+        for (int i = 0; i < max; i++)
+            printf("%d ", res->col_idx[i]);
+        printf(" ... ");
+        for (int i = nnz - max; i < nnz; i++)
+            printf("%d ", res->col_idx[i]);
+        printf("] \n");
+
+        printf("C->row_idx = [ ");
+        for (int i = 0; i < max; i++)
+            printf("%d ", res->row_idx[i]);
+        printf(" ... ");
+        for (int i = res->size - max + 1; i <= res->size; i++)
+            printf("%d ", res->row_idx[i]);
+        printf("] \n");
+
+        printf("values = [ ");
+        for (int i = 0; i < max; i++)
+            printf("%e ", res->values[i]);
+        printf(" ... ");
+        for (int i = nnz - max; i < nnz; i++)
+            printf("%e ", res->values[i]);
+        printf("] \n");
+    }
 }
 
 void printDenseMatrix(DenseMatrix *mat)
 {
     int size = mat->size;
     if (size > 10)
-    size = 10;
+        size = 10;
     for (int i = 0; i < size; i++)
     {
         for (int j = 0; j < size; j++)
@@ -293,4 +353,26 @@ void readMMVector(char *filename, Vector *vec)
 
     vec->size = size;
     vec->values = val;
+}
+
+void printVector(Vector *v)
+{
+    int size = v->size;
+    int max = 3;
+    printf("Values = [ ");
+    for (int i = 0; i < max; i++)
+        printf("%e ", v->values[i]);
+    printf(" ... ");
+    for (int i = size - max; i < size; i++)
+        printf("%e ", v->values[i]);
+    printf("]\n");
+}
+
+void printArray(double *values, int size)
+{
+    Vector *v = (Vector *)malloc(sizeof(Vector));
+    v->values = values;
+    v->size = size;
+    printVector(v);
+    free(v);
 }
