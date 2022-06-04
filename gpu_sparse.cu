@@ -18,6 +18,8 @@ extern "C"
 #include "read.h"
 }
 
+int test();
+
 // Calculate product aik * akj. rowStart and rowEnd is for row i
 bool rowColProduct(int rowStarti, int rowEndi, int rowStartk, int rowEndk, int k, int j, SparseMatrix *mat, float *result)
 {
@@ -86,7 +88,7 @@ void incompleteLU(SparseMatrix *mat)
                 exit(-100);
 
             // Compute aik = aik/akk
-   
+
             int starti = mat->row_idx[i];
             int endi = mat->row_idx[i + 1];
             for (int j = starti; j < endi; j++)
@@ -94,7 +96,7 @@ void incompleteLU(SparseMatrix *mat)
                 if (mat->col_idx[j] != k)
                     continue;
 
-                //printf("a%d%d /= a%d%d\n", i, k, k, k);
+                // printf("a%d%d /= a%d%d\n", i, k, k, k);
                 fvaluesLU[j] = fvaluesLU[j] / akk;
                 break;
             }
@@ -111,7 +113,7 @@ void incompleteLU(SparseMatrix *mat)
                         continue;
 
                     float result = 0.0;
-                     //printf("a%d%d -=  a%d%d / a%d%d\n", i, j, i, k, k, j);
+                    // printf("a%d%d -=  a%d%d / a%d%d\n", i, j, i, k, k, j);
                     // calculate product aik * akj
 
                     if (rowColProduct(starti, endi, startk, endk, k, j, mat, &result))
@@ -568,7 +570,6 @@ void LU(SparseMatrix *mat)
     for (int i = 0; i < nnz; i++)
         temp[i] = host_float_valuesLU[i];
     mat->values = temp;
-
 }
 
 // USED TO READ .mtx FILES AND THE CORRESPONDING rhs.mtx
@@ -628,8 +629,8 @@ void solveBin(int argc, char **argv)
     struct timeval start = tic();
 
     for (int i = 0; i < 1; i++)
-        //solveSystemSparseIterative(sparse, B, X, 1e-8);
-    incompleteLU(sparse) ;
+        // solveSystemSparseIterative(sparse, B, X, 1e-8);
+        incompleteLU(sparse);
     printf("Sparse time is %f\n", toc(start));
 
     saveVector("var/X.txt", B->size, X);
@@ -637,6 +638,7 @@ void solveBin(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
-    solveMtx(argc, argv);
-   //solveBin(argc, argv);
+    test();
+    // solveMtx(argc, argv);
+    // solveBin(argc, argv);
 }
