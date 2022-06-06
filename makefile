@@ -7,16 +7,16 @@ LINKER =   -L${MKLROOT}/lib/intel64 -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_cor
 ICXFLAGS =  -DMKL_ILP64  -m64  -I"${MKLROOT}/include"
 MKL = -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core
 
-all: cpu gpu gpu_sparse
+all: cpu gpu_sparse
 
 cpu: cpu.c utilities.c mmio.c read.c
 	$(CC) -o $@ $^ $(CFLAGS)
 
-gpu: gpu.cu utilities.c mmio.c read.c cudaUtilities.cu
-	$(NVCC) $^ -o $@  $(CUDA)
+# gpu: gpu.cu utilities.c mmio.c read.c cudaUtilities.cu
+# 	$(NVCC) $^ -o $@  $(CUDA)
 
 gpu_sparse: gpu_sparse.cu cudaUtilities.cu utilities.c mmio.c read.c mklILU.c
-	$(NVCC) -o $@ $^ $(CUDA) $(LINKER)
+	$(NVCC) -o $@ $^ $(CUDA) $(LINKER) $(ICXFLAGS)
 
 test: test.c 
 	$(CC) -o $@ $^ $(LINKER) $(ICXFLAGS)

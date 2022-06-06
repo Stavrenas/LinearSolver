@@ -475,3 +475,113 @@ int maxInt(int a, int b)
     else
         return b;
 }
+
+// Calculate product aik * akj. rowStart and rowEnd is for row i
+bool rowColProduct(int rowStarti, int rowEndi, int rowStartk, int rowEndk, int k, int j, SparseMatrix *mat, float *result)
+{
+    int size = mat->size;
+
+    // search for aik
+    for (int aik = rowStarti; aik < rowEndi; aik++)
+    {
+        if (mat->col_idx[aik] != k)
+            continue;
+
+        // search for akj
+        for (int akj = rowStartk; akj < rowEndk; akj++)
+        {
+            if (mat->col_idx[akj] != j)
+                continue;
+
+            *result = mat->values[aik] * mat->values[akj];
+            // printf("a(x,%d) * a(%d,%d)\n", k, k, j);
+            return true;
+        }
+    }
+    return false;
+}
+
+void incompleteLU(SparseMatrix *mat)
+{
+
+    int size = mat->size;
+    int nnz = mat->row_idx[size];
+
+    float *fvaluesLU = (float *)malloc(nnz * sizeof(float));
+    double *temp = (double *)malloc(nnz * sizeof(double));
+
+    for (int i = 0; i < nnz; i++)
+    {
+        temp[i] = 0;
+        fvaluesLU[i] = mat->values[i];
+    }
+
+    // iterate through rows
+    for (int i = 1; i < size; i++)
+    {
+
+        // calculate L
+        for (int k = 0; k < i; k++)
+        {
+
+            // search for akk
+            float akk = 0.0;
+            int startk = mat->row_idx[k];
+            int endk = mat->row_idx[k + 1];
+            bool found = false;
+
+            for (int indexk = startk; indexk < endk; indexk++)
+            {
+                if (mat->col_idx[indexk] != k)
+                    continue;
+
+                akk = fvaluesLU[indexk];
+                found = true;
+                break;
+            }
+
+            if (!found)
+                exit(-100);
+
+            // Compute aik = aik/akk
+
+            int starti = mat->row_idx[i];
+            int endi = mat->row_idx[i + 1];
+            for (int j = starti; j < endi; j++)
+            {
+                if (mat->col_idx[j] != k)
+                    continue;
+
+                // printf("a%d%d /= a%d%d\n", i, k, k, k);
+                fvaluesLU[j] = fvaluesLU[j] / akk;
+                break;
+            }
+
+            for (int j = k + 1; j < mat->size; j++)
+            {
+                int start = mat->row_idx[j];
+                int end = mat->row_idx[j + 1];
+
+                // Compute aij -= - aik * akj
+                for (int indexj = starti; indexj < endi; indexj++)
+                {
+                    if (mat->col_idx[indexj] != j)
+                        continue;
+
+                    float result = 0.0;
+                    // printf("a%d%d -=  a%d%d / a%d%d\n", i, j, i, k, k, j);
+                    // calculate product aik * akj
+
+                    if (rowColProduct(starti, endi, startk, endk, k, j, mat, &result))
+                        fvaluesLU[indexj] = fvaluesLU[indexj] - result;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < nnz; i++)
+        temp[i] = fvaluesLU[i];
+
+    free(fvaluesLU);
+    mat->values = temp;
+}

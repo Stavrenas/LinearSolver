@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mkl.h"
+#include "types.h"
 
 int test()
 {
@@ -95,4 +96,39 @@ int test()
 
     printf(" Example completed. \n\n");
     return 0;
+}
+
+void mklIncompleteLU(SparseMatrix *mat)
+{
+    const MKL_INT n = mat->size;
+    MKL_INT ierr = 0;
+    const MKL_INT *ipar = (MKL_INT *)mkl_malloc(128 * sizeof(MKL_INT), 32);
+    const double *dpar = (double *)mkl_malloc(128 * sizeof(double), 32);
+    int nnz = mat->row_idx[mat->size];
+
+    MKL_INT *ia = (MKL_INT *)mkl_malloc((n + 1) * sizeof(MKL_INT), 64);
+    MKL_INT *ja = (MKL_INT *)mkl_malloc((nnz) * sizeof(MKL_INT), 64);
+
+    double *values = (double *)malloc(nnz * sizeof(double));
+
+    // 0-based to 1-based
+
+    for (int i = 0; i <= n; i++)
+        ia[i] = (MKL_INT)(mat->row_idx[i] + 1);
+    for (int i = 0; i < nnz; i++)
+        ja[i] = (MKL_INT)(mat->col_idx[i] + 1);
+
+    dcsrilu0(&n, mat->values, ia, ja, mat->values, ipar, dpar, &ierr);
+    printf("error is %lld\n", ierr);
+
+    // overwritte values
+    // for (int i = 0; i < nnz; i++)
+    //     mat->values[i] = values[i];
+
+    // 1-based to 0-based
+
+    for (int i = 0; i <= n; i++)
+        mat->row_idx[i] = (int)(ia[i] - 1);
+    for (int i = 0; i < nnz; i++)
+        mat->col_idx[i] = (int)(ja[i] - 1);
 }
