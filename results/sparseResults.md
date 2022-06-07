@@ -22,7 +22,7 @@ Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.h
 
 ## Sparse Results
 
-For a 1000x1000 matrix we have:
+For a 1000 x 1000 matrix we have:
 
 | Tolerance | Iterations | Run time |
 | --------- | ---------- | -------- |
@@ -37,7 +37,7 @@ For a 1000x1000 matrix we have:
 | 1e-12     | 884        | 267 ms   |
 | 1e-13     | 982        | 326 ms   |
 
-For a 31287x31287 matrix with 2.467.643 nnz n10k we have:
+For a 31.287 x 31.287 matrix with 2.467.643 nnz n10k we have:
 
 | Tolerance | Iterations | Run time |
 | --------- | ---------- | -------- |
@@ -54,9 +54,29 @@ For a 31287x31287 matrix with 2.467.643 nnz n10k we have:
 
 Sort and ILU time is 1.35 sec.
 
-For na_bc sort and ILU time is 2.15 (323856x323856 and 13.180.992 nnz)
+For na_bc sort and ILU time is 2.15 (323.856x323.856 and 13.180.992 nnz)
 
-*Sorting the matrix before reduces the total iterations*
+_Sorting the matrix before **reduces** the total iterations_
+
+# Splitting of total time
+
+Data type: `Double`
+| Step | Percentage |
+| ------------------ | ---------- |
+| Matrix-vector mult | 8.5% |
+| Triangular Solver | 86.2% |
+
+Data type: `Single`
+| Step | Percentage |
+| ------------------ | ---------- |
+| Matrix-vector mult | 6.2% |
+| Triangular Solver | 88.3% |
+
+
+# CPU Times
+
+
+
 
 
 ![alt text](/results/iters.png)
