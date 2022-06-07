@@ -7,11 +7,8 @@ Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.h
 - Allocate GPU memory
 - Copy data to GPU memory
 - Setup matrix descriptors
-- Incomplete LU Factorization (**float**)
-  1. Calculate buffer size
-  2. Analysis
-  3. "Solve"
-- Copy result and typecast to double on gpu
+- Sort column indices on GPU (for intel MKL dcsrilu02)
+- Incomplete LU Factorization (**double** - using intel MKL)
 - Setup matrix descriptors for the triangular solvers
 - Solve initial system **Ax = b** by solving **Ly = b** and then **Ux = y**
 - Loop:
@@ -44,7 +41,7 @@ For a 31287x31287 matrix with 2.467.643 nnz n10k we have:
 
 | Tolerance | Iterations | Run time |
 | --------- | ---------- | -------- |
-| 1e-4      | 1230       | 8.2 s    |
+| 1e-4      | 1300       | 8.2 s    |
 | 1e-5      | 2413       | 14.15 s  |
 | 1e-6      | 3608       | 20.17 s  |
 | 1e-7      | 4806       | 26.18 s  |
@@ -54,3 +51,14 @@ For a 31287x31287 matrix with 2.467.643 nnz n10k we have:
 | 1e-11     | 9606       | 50.59 s  |
 | 1e-12     | 10806      | 56.33 s  |
 | 1e-13     | 12006      | 62.43 s  |
+
+Sort and ILU time is 1.35 sec.
+
+For na_bc sort and ILU time is 2.15 (323856x323856 and 13.180.992 nnz)
+
+*Sorting the matrix before reduces the total iterations*
+
+
+![alt text](/results/iters.png)
+
+![alt text](/results/run%20time.png)
