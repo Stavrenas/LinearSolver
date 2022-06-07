@@ -16,7 +16,7 @@ cpu: cpu.c utilities.c mmio.c read.c
 # 	$(NVCC) $^ -o $@  $(CUDA)
 
 gpu_sparse: gpu_sparse.cu cudaUtilities.cu utilities.c mmio.c read.c mklILU.c
-	$(NVCC) -o $@ $^ $(CUDA) $(LINKER) $(ICXFLAGS)
+	$(NVCC) -o $@ $^ $(CUDA) $(LINKER) $(ICXFLAGS) -g
 
 test: test.c 
 	$(CC) -o $@ $^ $(LINKER) $(ICXFLAGS)

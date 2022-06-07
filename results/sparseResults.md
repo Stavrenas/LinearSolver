@@ -1,6 +1,7 @@
 # Iterative refinement results for sparse matrices
 
 Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.html)
+
 ## Solution Pipeline
 
 - Allocate GPU memory
@@ -22,7 +23,7 @@ Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.h
   6. Restore overwritten vectors
 - Transfer solution to host memory
 
-## Results
+## Sparse Results
 
 For a 1000x1000 matrix we have:
 
@@ -33,8 +34,23 @@ For a 1000x1000 matrix we have:
 | 1e-6      | 299        | 113 ms   |
 | 1e-7      | 397        | 137 ms   |
 | 1e-8      | 494        | 162 ms   |
-| 1e-9     | 592        | 188 ms   |
+| 1e-9      | 592        | 188 ms   |
 | 1e-10     | 689        | 213 ms   |
 | 1e-11     | 787        | 244 ms   |
 | 1e-12     | 884        | 267 ms   |
 | 1e-13     | 982        | 326 ms   |
+
+For a 31287x31287 matrix with 2.467.643 nnz n10k we have:
+
+| Tolerance | Iterations | Run time |
+| --------- | ---------- | -------- |
+| 1e-4      | 1230       | 8.2 s    |
+| 1e-5      | 2413       | 14.15 s  |
+| 1e-6      | 3608       | 20.17 s  |
+| 1e-7      | 4806       | 26.18 s  |
+| 1e-8      | 6006       | 32.37 s  |
+| 1e-9      | 7206       | 38.42 s  |
+| 1e-10     | 8406       | 44.48 s  |
+| 1e-11     | 9606       | 50.59 s  |
+| 1e-12     | 10806      | 56.33 s  |
+| 1e-13     | 12006      | 62.43 s  |
