@@ -6,3 +6,5 @@ gpu_sparse
 *.txt
 !read.txt
 !data/n10k.txt
+c
+mkl_cookbook_samples
