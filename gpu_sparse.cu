@@ -55,8 +55,51 @@ void solveSystemSparse(SparseMatrix *mat, Vector *B, double *X)
 
     cusolverSpDestroy(cusolverHandle);
 
-    //printf("Singularity is %d\n", singularity);
-    // printf("Status is %s\n",cudaGetErrorEnum(error));
+    cusparseHandle_t sparseHandle = NULL;
+    cusparseCreate(&sparseHandle);
+
+    cublasHandle_t blasHandle;
+    cublasCreate(&blasHandle);
+
+    double *rowPtrCopy, *colIdxCopy, *d_b, *d_x;
+    checkCudaErrors(cudaMalloc((void **)&d_b, n * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&d_x, n * sizeof(double)));
+    checkCudaErrors(cudaMemcpy(d_x, X, n * sizeof(double), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_b, B->values, n * sizeof(double), cudaMemcpyHostToDevice));
+
+    checkCudaErrors(cudaMalloc((void **)&rowPtrCopy, (n + 1) * sizeof(int)));
+    checkCudaErrors(cudaMemcpy(rowPtrCopy, mat->row_idx, (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
+
+    checkCudaErrors(cudaMalloc((void **)&colIdxCopy, nnz * sizeof(int)));
+    checkCudaErrors(cudaMemcpy(colIdxCopy, mat->col_idx, nnz * sizeof(int), cudaMemcpyHostToDevice));
+
+    cusparseSpMatDescr_t descrACopy;
+    // Create a copy of A to calculate residual r = b - Ax
+    cusparseCreateCsr(&descrACopy, n, n, nnz, rowPtrCopy, colIdxCopy, mat->values, CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
+
+    cusparseDnVecDescr_t descrX, descrB;
+
+    cusparseCreateDnVec(&descrB, n, d_b, CUDA_R_64F);
+    cusparseCreateDnVec(&descrX, n, d_x, CUDA_R_64F);
+
+    double minusOne = -1.0;
+    double one = 1.0;
+    size_t spMvBufferSize = 0;
+    void *spMvBuffer;
+
+    checkCudaErrors(cusparseSpMV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrACopy, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, &spMvBufferSize));
+    checkCudaErrors(cudaMalloc(&spMvBuffer, spMvBufferSize));
+
+    // CALCULATE RESIDUAL and store it on B vector
+    checkCudaErrors(cusparseSpMV(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrACopy, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, spMvBuffer));
+
+    // CUBLAS NORM
+    double resNormm;
+    cublasDnrm2(blasHandle, n, d_b, 1, &resNormm);
+
+    printf("Norm  is %e\n", resNormm);
+    //  printf("Status is %s\n",cudaGetErrorEnum(error));
 }
 
 void solveSystemSparseIterativeDouble(SparseMatrix *mat, Vector *B, double *X, double tolerance)
@@ -565,7 +608,8 @@ void solveMtx(int argc, char **argv)
     struct timeval start = tic();
 
     for (int i = 0; i < 1; i++)
-        solveSystemSparseIterativeDouble(sparse, B, X, 1e-12);
+        // solveSystemSparseIterativeDouble(sparse, B, X, 1e-12);
+        solveSystemSparse(sparse, B, X);
 
     printf("Gpu time is %f\n", toc(start));
 
@@ -593,16 +637,16 @@ void solveBin(int argc, char **argv)
     struct timeval start = tic();
 
     for (int i = 0; i < 1; i++)
-//        solveSystemSparseIterativeSingle(sparse, B, X, 1e-12);
-    solveSystemSparse(sparse, B, X);
+        // solveSystemSparseIterativeDouble(sparse, B, X, 1e-12);
+        solveSystemSparse(sparse, B, X);
 
     printf("Sparse time is %f\n", toc(start));
 
-    saveVector("var/X.txt", B->size, X);
+    saveVector("var/GPUX.txt", B->size, X);
 }
 
 int main(int argc, char **argv)
 {
-    // solveMtx(argc, argv);
-    solveBin(argc, argv);
+    solveMtx(argc, argv);
+    // solveBin(argc, argv);
 }
