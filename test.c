@@ -96,3 +96,8 @@ int test()
     printf(" Example completed. \n\n");
     return 0;
 }
+
+int main()
+{
+    test();
+}

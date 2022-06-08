@@ -479,7 +479,7 @@ int maxInt(int a, int b)
 // Calculate product aik * akj. rowStart and rowEnd is for row i
 bool rowColProduct(int rowStarti, int rowEndi, int rowStartk, int rowEndk, int k, int j, SparseMatrix *mat, float *result)
 {
-    int size = mat->size;
+    // int size = mat->size;
 
     // search for aik
     for (int aik = rowStarti; aik < rowEndi; aik++)
