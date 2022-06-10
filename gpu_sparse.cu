@@ -10,6 +10,7 @@
 #include "device_launch_parameters.h"
 #include "cudaUtilities.h"
 #include "helper_cuda.h"
+#include "cuda.h"
 
 extern "C"
 {
@@ -579,7 +580,7 @@ void solveSystemSparseIterativeGC(SparseMatrix *mat, Vector *B, double *X, doubl
 
     int n = mat->size;
     int nnz = mat->row_idx[n];
-    int maxIters = 15000;
+    int maxIters = 1500;
 
     // create float copy of system elements
     float *host_float_values = (float *)malloc(nnz * sizeof(float));
@@ -837,7 +838,7 @@ void solveSystemSparseIterativeGC(SparseMatrix *mat, Vector *B, double *X, doubl
             break;
         }
 
-        if (i % 10 == 0)
+        if (i % 100 == 0)
         {
             printf("i is %d ", i);
             printf("res Norm is %e, ", resNormm);
@@ -862,71 +863,45 @@ void solveSystemSparseIterativeGC(SparseMatrix *mat, Vector *B, double *X, doubl
     cusparseDestroy(sparseHandle);
 }
 
-// USED TO READ .mtx FILES AND THE CORRESPONDING rhs.mtx
-void solveMtx(int argc, char **argv)
+int main(int argc, char **argv)
 {
-    const char *matrixName;
-    if (argc == 1)
-        matrixName = "data/sherman1";
-    else
-        matrixName = argv[1];
-    char *filename = (char *)malloc(40 * sizeof(char));
-    char *filenameB = (char *)malloc(40 * sizeof(char));
-    char *filenameSol = (char *)malloc(40 * sizeof(char));
-
-    sprintf(filename, "%s.mtx", matrixName);
-    sprintf(filenameB, "%s_rhs1.mtx", matrixName);
-
-    SparseMatrix *sparse = (SparseMatrix *)malloc(sizeof(SparseMatrix));
-    Vector *B = (Vector *)malloc(sizeof(Vector));
-
-    readSparseMMMatrix(filename, sparse);
-    readMMVector(filenameB, B);
-
-    double *X = (double *)malloc(B->size * sizeof(double));
-
-    struct timeval start = tic();
-
-    for (int i = 0; i < 1; i++)
-        // solveSystemSparseIterativeDouble(sparse, B, X, 1e-12);
-        solveSystemSparseDirect(sparse, B, X);
-
-    printf("Gpu time is %f\n", toc(start));
-
-    // saveVector("var/Sparse.txt", B->size, X);
-}
-
-// USED TO READ .bin FILES WHICH INCLUDE THE RIGHT HAND SIDE AND THE SOLUTION
-void solveBin(int argc, char **argv)
-{
-    char *matrixName;
+    char *matrixName = (char *)malloc(40 * sizeof(char));
+    char *temp = (char *)"data/n10k.bin";
+    char saveFile[40] = "var/GPUX.txt";
 
     if (argc == 2)
-        matrixName = argv[1];
+        strcpy(matrixName, argv[1]);
     else
-        matrixName = "data/n10k.bin";
+        strcpy(matrixName, temp);
+
     SparseMatrix *sparse = (SparseMatrix *)malloc(sizeof(SparseMatrix));
     Vector *B = (Vector *)malloc(sizeof(Vector));
     Vector *Xcorrect = (Vector *)malloc(sizeof(Vector));
 
-    readSystem(matrixName, sparse, B, Xcorrect);
+    if (strstr(matrixName, ".bin"))
+        readSystem(matrixName, sparse, B, Xcorrect);
+
+    else if (strstr(matrixName, ".mtx"))
+    {
+        char *filenameB = (char *)malloc(40 * sizeof(char));
+        char name[40];
+
+        strcpy(name, matrixName);
+        name[strlen(name) - 4] = (char)'\0';
+        sprintf(filenameB, "%s_rhs1.mtx", name);
+        readSparseMMMatrix(matrixName, sparse);
+        readMMVector(filenameB, B);
+    }
 
     double *X = (double *)malloc(B->size * sizeof(double));
-    // printSparseMatrix(sparse);
 
     struct timeval start = tic();
 
     for (int i = 0; i < 1; i++)
-        solveSystemSparseIterativeGC(sparse, B, X, 1e-12);
+        solveSystemSparseIterativeGC(sparse, B, X, 1e-7);
     // solveSystemSparseDirect(sparse, B, X);
 
     printf("Sparse time is %f\n", toc(start));
 
-    saveVector("var/GPUX.txt", B->size, X);
-}
-
-int main(int argc, char **argv)
-{
-    // solveMtx(argc, argv);
-    solveBin(argc, argv);
+    saveVector(saveFile, B->size, X);
 }

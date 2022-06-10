@@ -119,9 +119,10 @@ void mklIncompleteLU(SparseMatrix *mat)
         ja[i] = mat->col_idx[i] + 1;
 
     dcsrilu0(&n, mat->values, ia, ja, values, ipar, dpar, &ierr);
-    printf("error is %lld\n", ierr);
+    if (ierr != 0)
+        printf("error is %lld\n", ierr);
 
-    //overwritte values
+    // overwritte values
     for (int i = 0; i < nnz; i++)
         mat->values[i] = values[i];
 

@@ -177,7 +177,7 @@ void sortSparseMatrix(SparseMatrix *mat)
                                                   temp_rowPtr, temp_colIdx, CUDA_R_64F, CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO,
                                                   CUSPARSE_CSR2CSC_ALG1, &bufferSize));
 
-    printf("Buffer size is %d\n", bufferSize);
+    // printf("Buffer size is %d\n", bufferSize);
     checkCudaErrors(cudaMalloc(&buffer, bufferSize));
 
     checkCudaErrors(cusparseCsr2cscEx2(sparseHandle, n, n, nnz, values, rowPtr, colIdx, temp_values,
