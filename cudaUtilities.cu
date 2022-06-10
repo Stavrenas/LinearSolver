@@ -15,7 +15,7 @@ __global__ void floatToDoubleVector(float *left, double *right, int size)
 {
     int parts = (float)size / blockDim.x + 1;
     int start = threadIdx.x * parts;
-    int end = start + parts ;
+    int end = start + parts;
     if (end > size)
         end = size;
     for (int i = start; i < end; i++)
