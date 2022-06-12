@@ -10,55 +10,47 @@ Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.h
 - Sort column indices on GPU (for intel MKL dcsrilu02)
 - Incomplete LU Factorization (**double** - using intel MKL)
 - Setup matrix descriptors for the triangular solvers
-- Solve initial system **Ax = b** by solving **Ly = b** and then **Ux = y**
 - Loop:
-  1. Calculate residual r = b - Ax (**double**)
-  2. Find |b| , |r| (**double**)
-  3. Break if |r| / |b| < _tolerance_ (**double**)
-  4. Solve **Ac = r** by solving **Ly = b** and then **Uc = y** (**double**)
-  5. Update solution vector: Xn+1 = Xn + c (**double**)
-  6. Restore overwritten vectors
+  1. Solve **Mz = r** (**double**)
+  2. Calculate $p_i = r^T z$ (**double**)
+  3. If (i == 0)
+     - p = z
+  4. else
+     - $ beta = {p*i \over p*{i-1}} $
+     - p = z + beta \* p
+  5. Compute **q = Ap** (**double**)
+  6. a = $ p_i \over p^Tq $
+  7. x += ap
+  8. r -= aq
 - Transfer solution to host memory
 
-## Sparse Results
+## Sparse GC Results
 
-For a 1000 x 1000 matrix we have:
-
-| Tolerance | Iterations | Run time |
-| --------- | ---------- | -------- |
-| 1e-4      | 127        | 68 ms    |
-| 1e-5      | 205        | 88 ms    |
-| 1e-6      | 299        | 113 ms   |
-| 1e-7      | 397        | 137 ms   |
-| 1e-8      | 494        | 162 ms   |
-| 1e-9      | 592        | 188 ms   |
-| 1e-10     | 689        | 213 ms   |
-| 1e-11     | 787        | 244 ms   |
-| 1e-12     | 884        | 267 ms   |
-| 1e-13     | 982        | 326 ms   |
-
-For a 31.287 x 31.287 matrix with 2.467.643 nnz n10k we have:
-
-| Tolerance | Iterations | Run time |
-| --------- | ---------- | -------- |
-| 1e-4      | 1300       | 8.2 s    |
-| 1e-5      | 2413       | 14.15 s  |
-| 1e-6      | 3608       | 20.17 s  |
-| 1e-7      | 4806       | 26.18 s  |
-| 1e-8      | 6006       | 32.37 s  |
-| 1e-9      | 7206       | 38.42 s  |
-| 1e-10     | 8406       | 44.48 s  |
-| 1e-11     | 9606       | 50.59 s  |
-| 1e-12     | 10806      | 56.33 s  |
-| 1e-13     | 12006      | 62.43 s  |
+For a 31.287 x 31.287 matrix with 2.467.643 nnz _(n10k)_ we have:
 
 Sort and ILU time is 1.35 sec.
+
+Norm is residual norm divided by right-hand side norm
+
+#### Naive approach vs GC
+
+| Norm  | Iterations | Run time | Iterations(GC) | Run time(GC) |
+| ----- | ---------- | -------- | -------------- | ------------ |
+| 1e-7  | 4806       | 26.18 s  | 137            | 3.13s        |
+| 1e-8  | 6006       | 32.37 s  | 148            | 3.13 s       |
+| 1e-9  | 7206       | 38.42 s  | 160            | 3.13 s       |
+| 1e-10 | 8406       | 44.48 s  | 174            | 3.28 s       |
+| 1e-11 | 9606       | 50.59 s  | 182            | 2.98 s       |
+| 1e-12 | 10806      | 56.33 s  | 191            | 3.5 s        |
+| 1e-13 | 12006      | 62.43 s  | 200            | 3.61 s       |
 
 For na_bc sort and ILU time is 2.15 (323.856x323.856 and 13.180.992 nnz)
 
 _Sorting the matrix before **reduces** the total iterations_
 
-# Splitting of total time
+### Splitting of total time
+
+The following metrics are derived from the naive approach.
 
 Data type: `Double`
 | Step | Percentage |
@@ -72,13 +64,30 @@ Data type: `Single`
 | Matrix-vector mult | 6.2% |
 | Triangular Solver | 88.3% |
 
+_With single precision the algorithm did **not** converge_
 
-# CPU Times
+### CPU vs GPU Times
 
+**n10k.bin**
+| mode | time | Residual Norm |
+|---|---|---|
+| CPU (mkl) | 1sec | 1e-15 |
+|GPU iterative simple | 50sec | 1e-12 |
+|GPU direct | 35 sec | 0 |
+|GPU iterative GC | 3 sec | 1e-12 |
 
+**na_bc.bin**
+| mode | time | Residual Norm |
+|---|---|---|
+| CPU(mkl) | 10sec | 1e-8 |
+|GPU iterative simple | - | - |
+|GPU direct | - | - |
+|GPU iterative GC | - | - |
 
+**Note:** All gpu implementations cannot achieve congergence.
 
+Maybe because "The preconditioner matrix M has to be symmetric positive-definite and fixed" ?
 
-![alt text](/results/iters.png)
+<!-- ![alt text](/results/iters.png)
 
-![alt text](/results/run%20time.png)
+![alt text](/results/run%20time.png) -->

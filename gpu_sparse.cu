@@ -715,15 +715,15 @@ void solveSystemSparseIterativeGC(SparseMatrix *mat, Vector *B, double *X, doubl
     checkCudaErrors(cusparseSpSV_analysis(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
                                           descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU, spSvBufferU));
 
-    // printf("SpSv solve L.. \n");
-    // // solve L*y = b
-    checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
-                                       descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL));
+    // // printf("SpSv solve L.. \n");
+    // // // solve L*y = b
+    // checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrL, descrB,
+    //                                    descrY, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrL));
 
-    // printf("SpSv solve U.. \n");
-    // // solve U*x = y
-    checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
-                                       descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU));
+    // // printf("SpSv solve U.. \n");
+    // // // solve U*x = y
+    // checkCudaErrors(cusparseSpSV_solve(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &plusOne, descrU, descrY,
+    //                                    descrX, CUDA_R_64F, CUSPARSE_SPSV_ALG_DEFAULT, spsvDescrU));
 
     // printf("enter loop\n");
 
@@ -867,7 +867,7 @@ int main(int argc, char **argv)
 {
     char *matrixName = (char *)malloc(40 * sizeof(char));
     char *temp = (char *)"data/n10k.bin";
-    char saveFile[40] = "var/GPUX.txt";
+    char saveFile[40] = "var/GPUXDirect.txt";
 
     if (argc == 2)
         strcpy(matrixName, argv[1]);
@@ -897,8 +897,8 @@ int main(int argc, char **argv)
 
     struct timeval start = tic();
 
-    for (int i = 0; i < 1; i++)
-        solveSystemSparseIterativeGC(sparse, B, X, 1e-7);
+    for (int i = 0; i < 5; i++)
+        solveSystemSparseIterativeGC(sparse, B, X, 1e-12);
     // solveSystemSparseDirect(sparse, B, X);
 
     printf("Sparse time is %f\n", toc(start));
