@@ -27,13 +27,13 @@ void generateSolutionVector(char *matrixName, SparseMatrix *Mtr);
 void createMatrix(SparseMatrix *res, char *filename);
 
 void coo2csr(
-    uint32_t *const row_idx, /*!< CSR row indices */
-    uint32_t *const col_idx, /*!< CSR column indices */
+    int *const row_idx, /*!< CSR row indices */
+    int *const col_idx, /*!< CSR column indices */
     double *const csr_val,
-    uint32_t const *const row_coo, /*!< COO row indices */
-    uint32_t const *const col_coo, /*!< COO column indices */
-    uint32_t const nnz,            /*!< Number of nonzero elements */
-    uint32_t const n,              /*!< Number of rows/columns */
+    int const *const row_coo, /*!< COO row indices */
+    int const *const col_coo, /*!< COO column indices */
+    int const nnz,            /*!< Number of nonzero elements */
+    int const n,              /*!< Number of rows/columns */
     double *const coo_val);
 
 void clearMatrix(SparseMatrix *A);

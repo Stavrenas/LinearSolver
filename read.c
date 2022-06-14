@@ -15,7 +15,7 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
     MM_typecode matcode;
     FILE *f;
     int M, N, nz;
-    uint32_t i, *I, *J;
+    int i, *I, *J;
     double *coo_val, *csr_val;
 
     if ((f = fopen(file_path, "r")) == NULL)
@@ -44,8 +44,8 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
 
     /* reseve memory for matrices */
 
-    I = (uint32_t *)malloc(nz * sizeof(uint32_t));
-    J = (uint32_t *)malloc(nz * sizeof(uint32_t));
+    I = (int *)malloc(nz * sizeof(int));
+    J = (int *)malloc(nz * sizeof(int));
     coo_val = (double *)malloc(nz * sizeof(double));
     csr_val = (double *)malloc(nz * sizeof(double));
 
@@ -61,11 +61,11 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
 
     // Up to this point, I[] cointains row index and J[] column index for the nonzero elements
 
-    const uint32_t nnz = nz;
+    const int nnz = nz;
 
     // printf("M is %d, nnz is %d\n", M, nnz);
-    uint32_t *row_idx = (uint32_t *)malloc((M + 1) * sizeof(uint32_t));
-    uint32_t *col_idx = (uint32_t *)malloc(nnz * sizeof(uint32_t));
+    int *row_idx = (int *)malloc((M + 1) * sizeof(int));
+    int *col_idx = (int *)malloc(nnz * sizeof(int));
 
     // Call coo2csr
     coo2csr(row_idx, col_idx, csr_val, I, J, nnz, M, coo_val);

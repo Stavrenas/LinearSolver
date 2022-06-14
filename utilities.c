@@ -332,22 +332,22 @@ void clearMatrix(SparseMatrix *A)
 }
 
 void coo2csr(
-    uint32_t *const row_idx, /*!< CSR row indices */
-    uint32_t *const col_idx, /*!< CSR column indices */
+    int *const row_idx, /*!< CSR row indices */
+    int *const col_idx, /*!< CSR column indices */
     double *const csr_val,
-    uint32_t const *const row_coo, /*!< COO row indices */
-    uint32_t const *const col_coo, /*!< COO column indices */
-    uint32_t const nnz,            /*!< Number of nonzero elements */
-    uint32_t const n,              /*!< Number of rows/columns */
+    int const *const row_coo, /*!< COO row indices */
+    int const *const col_coo, /*!< COO column indices */
+    int const nnz,            /*!< Number of nonzero elements */
+    int const n,              /*!< Number of rows/columns */
     double *const coo_val)
 {
-    for (uint32_t l = 0; l < nnz; l++)
+    for (int l = 0; l < nnz; l++)
         col_idx[l] = col_coo[l];
 
-    for (uint32_t i = 0; i <= n; i++)
+    for (int i = 0; i <= n; i++)
         row_idx[i] = 0;
 
-    for (uint32_t i = 0; i < nnz; i++)
+    for (int i = 0; i < nnz; i++)
     {
         row_idx[row_coo[i]]++;
         // printf("row_coo[%d] = %d, row_idx[%d] = %d \n",i,row_coo[i],i,row_idx[i]);
@@ -355,9 +355,9 @@ void coo2csr(
 
     // ----- cumulative sum
     // printf("cumsum\n");
-    for (uint32_t i = 0, cumsum = 0; i < n; i++)
+    for (int i = 0, cumsum = 0; i < n; i++)
     {
-        uint32_t temp = row_idx[i];
+        int temp = row_idx[i];
         row_idx[i] = cumsum;
         // printf("row_idx[%d] = %d \n",i,row_idx[i]);
         cumsum += temp;
@@ -501,87 +501,87 @@ bool rowColProduct(int rowStarti, int rowEndi, int rowStartk, int rowEndk, int k
     return false;
 }
 
-void incompleteLU(SparseMatrix *mat)
-{
+// void incompleteLU(SparseMatrix *mat)
+// {
 
-    int size = mat->size;
-    int nnz = mat->row_idx[size];
+//     int size = mat->size;
+//     int nnz = mat->row_idx[size];
 
-    float *fvaluesLU = (float *)malloc(nnz * sizeof(float));
-    double *temp = (double *)malloc(nnz * sizeof(double));
+//     float *fvaluesLU = (float *)malloc(nnz * sizeof(float));
+//     double *temp = (double *)malloc(nnz * sizeof(double));
 
-    for (int i = 0; i < nnz; i++)
-    {
-        temp[i] = 0;
-        fvaluesLU[i] = mat->values[i];
-    }
+//     for (int i = 0; i < nnz; i++)
+//     {
+//         temp[i] = 0;
+//         fvaluesLU[i] = mat->values[i];
+//     }
 
-    // iterate through rows
-    for (int i = 1; i < size; i++)
-    {
+//     // iterate through rows
+//     for (int i = 1; i < size; i++)
+//     {
 
-        // calculate L
-        for (int k = 0; k < i; k++)
-        {
+//         // calculate L
+//         for (int k = 0; k < i; k++)
+//         {
 
-            // search for akk
-            float akk = 0.0;
-            int startk = mat->row_idx[k];
-            int endk = mat->row_idx[k + 1];
-            bool found = false;
+//             // search for akk
+//             float akk = 0.0;
+//             int startk = mat->row_idx[k];
+//             int endk = mat->row_idx[k + 1];
+//             bool found = false;
 
-            for (int indexk = startk; indexk < endk; indexk++)
-            {
-                if (mat->col_idx[indexk] != k)
-                    continue;
+//             for (int indexk = startk; indexk < endk; indexk++)
+//             {
+//                 if (mat->col_idx[indexk] != k)
+//                     continue;
 
-                akk = fvaluesLU[indexk];
-                found = true;
-                break;
-            }
+//                 akk = fvaluesLU[indexk];
+//                 found = true;
+//                 break;
+//             }
 
-            if (!found)
-                exit(-100);
+//             if (!found)
+//                 exit(-100);
 
-            // Compute aik = aik/akk
+//             // Compute aik = aik/akk
 
-            int starti = mat->row_idx[i];
-            int endi = mat->row_idx[i + 1];
-            for (int j = starti; j < endi; j++)
-            {
-                if (mat->col_idx[j] != k)
-                    continue;
+//             int starti = mat->row_idx[i];
+//             int endi = mat->row_idx[i + 1];
+//             for (int j = starti; j < endi; j++)
+//             {
+//                 if (mat->col_idx[j] != k)
+//                     continue;
 
-                // printf("a%d%d /= a%d%d\n", i, k, k, k);
-                fvaluesLU[j] = fvaluesLU[j] / akk;
-                break;
-            }
+//                 // printf("a%d%d /= a%d%d\n", i, k, k, k);
+//                 fvaluesLU[j] = fvaluesLU[j] / akk;
+//                 break;
+//             }
 
-            for (int j = k + 1; j < mat->size; j++)
-            {
-                int start = mat->row_idx[j];
-                int end = mat->row_idx[j + 1];
+//             for (int j = k + 1; j < mat->size; j++)
+//             {
+//                 int start = mat->row_idx[j];
+//                 int end = mat->row_idx[j + 1];
 
-                // Compute aij -= - aik * akj
-                for (int indexj = starti; indexj < endi; indexj++)
-                {
-                    if (mat->col_idx[indexj] != j)
-                        continue;
+//                 // Compute aij -= - aik * akj
+//                 for (int indexj = starti; indexj < endi; indexj++)
+//                 {
+//                     if (mat->col_idx[indexj] != j)
+//                         continue;
 
-                    float result = 0.0;
-                    // printf("a%d%d -=  a%d%d / a%d%d\n", i, j, i, k, k, j);
-                    // calculate product aik * akj
+//                     float result = 0.0;
+//                     // printf("a%d%d -=  a%d%d / a%d%d\n", i, j, i, k, k, j);
+//                     // calculate product aik * akj
 
-                    if (rowColProduct(starti, endi, startk, endk, k, j, mat, &result))
-                        fvaluesLU[indexj] = fvaluesLU[indexj] - result;
-                }
-            }
-        }
-    }
+//                     if (rowColProduct(starti, endi, startk, endk, k, j, mat, &result))
+//                         fvaluesLU[indexj] = fvaluesLU[indexj] - result;
+//                 }
+//             }
+//         }
+//     }
 
-    for (int i = 0; i < nnz; i++)
-        temp[i] = fvaluesLU[i];
+//     for (int i = 0; i < nnz; i++)
+//         temp[i] = fvaluesLU[i];
 
-    free(fvaluesLU);
-    mat->values = temp;
-}
+//     free(fvaluesLU);
+//     mat->values = temp;
+// }

@@ -27,7 +27,6 @@ void solveSparseDirect(SparseMatrix *mat, Vector *B, double *X)
     // INITIALIZE CUSOLVER
     cusolverSpHandle_t cusolverHandle;
     cudaStream_t stream = NULL;
-    cusolverStatus_t error;
 
     cusolverSpCreate(&cusolverHandle);
     cudaStreamCreate(&stream);
@@ -45,7 +44,7 @@ void solveSparseDirect(SparseMatrix *mat, Vector *B, double *X)
     cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
     cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO);
 
-    error = cusolverSpDcsrlsvluHost(
+    cusolverSpDcsrlsvluHost(
         cusolverHandle, n, nnz, descrA,
         mat->values,
         mat->row_idx,
@@ -96,10 +95,10 @@ void solveSparseDirect(SparseMatrix *mat, Vector *B, double *X)
     checkCudaErrors(cusparseSpMV(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrACopy, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, spMvBuffer));
 
     // CUBLAS NORM
-    double resNormm;
-    cublasDnrm2(blasHandle, n, d_b, 1, &resNormm);
+    double resNorm;
+    cublasDnrm2(blasHandle, n, d_b, 1, &resNorm);
 
-    printf("Norm  is %e\n", resNormm);
+    printf("Norm  is %e\n", resNorm);
     //  printf("Status is %s\n",cudaGetErrorEnum(error));
 }
 
@@ -122,7 +121,7 @@ void solveSparseIterativeSingle(SparseMatrix *mat, Vector *B, double *X, double 
     for (int i = 0; i < nnz; i++)
         host_float_values[i] = mat->values[i];
 
-    // INITIALIZE CUSOLVER
+    // INITIALIZE CUSOLVER AND CUBLAS
     cusparseHandle_t sparseHandle = NULL;
     cublasHandle_t blasHandle;
     cudaStream_t stream = NULL;
@@ -287,10 +286,10 @@ void solveSparseIterativeSingle(SparseMatrix *mat, Vector *B, double *X, double 
         spmvTime += toc(tempTime);
 
         // CUBLAS NORM
-        float resNormm;
-        cublasSnrm2(blasHandle, n, rhs, 1, &resNormm);
+        float resNorm;
+        cublasSnrm2(blasHandle, n, rhs, 1, &resNorm);
 
-        if ((resNormm / bNorm) < tolerance)
+        if ((resNorm / bNorm) < tolerance)
         {
             printf("Iterations: %d\n", i);
             break;
@@ -318,10 +317,10 @@ void solveSparseIterativeSingle(SparseMatrix *mat, Vector *B, double *X, double 
         if (i % 100 == 0)
         {
             printf("i is %d ", i);
-            printf("res Norm is %e, ", resNormm);
+            printf("res Norm is %e, ", resNorm);
             printf("b norm is %e ", bNorm);
             printf("buff is %ld ", spMvBufferSize);
-            printf("div is %e \n", resNormm / bNorm);
+            printf("div is %e \n", resNorm / bNorm);
         }
     }
     checkCudaErrors(cudaPeekAtLastError());
@@ -362,7 +361,7 @@ void solveSparseIterative(SparseMatrix *mat, Vector *B, double *X, double tolera
     for (int i = 0; i < nnz; i++)
         host_float_values[i] = mat->values[i];
 
-    // INITIALIZE CUSOLVER
+    // INITIALIZE CUSOLVER AND CUBLAS
     cusparseHandle_t sparseHandle = NULL;
     cublasHandle_t blasHandle;
     cudaStream_t stream = NULL;
@@ -521,10 +520,10 @@ void solveSparseIterative(SparseMatrix *mat, Vector *B, double *X, double tolera
         spmvTime += toc(tempTime);
 
         // CUBLAS NORM
-        double resNormm;
-        cublasDnrm2(blasHandle, n, rhs, 1, &resNormm);
+        double resNorm;
+        cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
 
-        if ((resNormm / bNorm) < tolerance)
+        if ((resNorm / bNorm) < tolerance)
         {
             printf("Iterations: %d\n", i);
             break;
@@ -552,10 +551,10 @@ void solveSparseIterative(SparseMatrix *mat, Vector *B, double *X, double tolera
         if (i % 100 == 0)
         {
             printf("i is %d ", i);
-            printf("res Norm is %e, ", resNormm);
+            printf("res Norm is %e, ", resNorm);
             printf("b norm is %e ", bNorm);
             printf("buff is %ld ", spMvBufferSize);
-            printf("div is %e \n", resNormm / bNorm);
+            printf("div is %e \n", resNorm / bNorm);
         }
     }
     checkCudaErrors(cudaPeekAtLastError());
@@ -594,7 +593,7 @@ void solveSparseIterativeCG(SparseMatrix *mat, Vector *B, double *X, double tole
     for (int i = 0; i < nnz; i++)
         host_float_values[i] = mat->values[i];
 
-    // INITIALIZE CUSOLVER
+    // INITIALIZE CUSOLVER AND CUBLAS
     cusparseHandle_t sparseHandle = NULL;
     cublasHandle_t blasHandle;
     cudaStream_t stream = NULL;
@@ -754,12 +753,12 @@ void solveSparseIterativeCG(SparseMatrix *mat, Vector *B, double *X, double tole
     double Pi = 0.0;
     double Pi_prev = 0.0;
     double beta, alpha;
-    double resNormm, qNorm, pNorm, zNorm;
+    double resNorm; //, qNorm, pNorm, zNorm;
 
-    struct timeval tempTime;
-    float spmvTime, solveTime;
-    spmvTime = 0;
-    solveTime = 0;
+    // struct timeval tempTime;
+    // float spmvTime, solveTime;
+    // spmvTime = 0;
+    // solveTime = 0;
 
     for (int i = 0; i < maxIters; i++)
     {
@@ -826,13 +825,13 @@ void solveSparseIterativeCG(SparseMatrix *mat, Vector *B, double *X, double tole
         // Step 14: r <- r - a * q
         cublasDaxpy(blasHandle, n, &alpha, q, 1, rhs, 1); // result is saved on rhs
 
-        // cublasDnrm2(blasHandle, n, rhs, 1, &resNormm);
-        // printf("res Norm is %e, ", resNormm);
+        // cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
+        // printf("res Norm is %e, ", resNorm);
 
         // RESIDUAL NORM
-        cublasDnrm2(blasHandle, n, rhs, 1, &resNormm);
+        cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
 
-        if ((resNormm / bNorm) < tolerance)
+        if ((resNorm / bNorm) < tolerance)
         {
             printf("Iterations: %d\n", i);
             break;
@@ -841,9 +840,9 @@ void solveSparseIterativeCG(SparseMatrix *mat, Vector *B, double *X, double tole
         if (i % 100 == 0)
         {
             printf("i is %d ", i);
-            printf("res Norm is %e, ", resNormm);
+            printf("res Norm is %e, ", resNorm);
             printf("a is %e  beta is %e  ", alpha, beta);
-            printf("div is %e \n", resNormm / bNorm);
+            printf("div is %e \n", resNorm / bNorm);
         }
     }
     checkCudaErrors(cudaPeekAtLastError());
@@ -882,7 +881,7 @@ void solveSparseIterativeCGSingle(SparseMatrix *mat, Vector *B, double *X, doubl
     for (int i = 0; i < nnz; i++)
         host_float_values[i] = mat->values[i];
 
-    // INITIALIZE CUSOLVER
+    // INITIALIZE CUSOLVER AND CUBLAS
     cusparseHandle_t sparseHandle = NULL;
     cublasHandle_t blasHandle;
     cudaStream_t stream = NULL;
@@ -1046,12 +1045,12 @@ void solveSparseIterativeCGSingle(SparseMatrix *mat, Vector *B, double *X, doubl
     float Pi = 0.0;
     float Pi_prev = 0.0;
     float beta, alpha;
-    float resNormm, qNorm, pNorm, zNorm;
+    float resNorm; //, qNorm, pNorm, zNorm;
 
-    struct timeval tempTime;
-    float spmvTime, solveTime;
-    spmvTime = 0;
-    solveTime = 0;
+    // struct timeval tempTime;
+    // float spmvTime, solveTime;
+    // spmvTime = 0;
+    // solveTime = 0;
 
     for (int i = 0; i < maxIters * 100; i++)
     {
@@ -1118,13 +1117,13 @@ void solveSparseIterativeCGSingle(SparseMatrix *mat, Vector *B, double *X, doubl
         // Step 14: r <- r - a * q
         cublasSaxpy(blasHandle, n, &alpha, q, 1, rhs, 1); // result is saved on rhs
 
-        // cublasDnrm2(blasHandle, n, rhs, 1, &resNormm);
-        // printf("res Norm is %e, ", resNormm);
+        // cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
+        // printf("res Norm is %e, ", resNorm);
 
         // RESIDUAL NORM
-        cublasSnrm2(blasHandle, n, rhs, 1, &resNormm);
+        cublasSnrm2(blasHandle, n, rhs, 1, &resNorm);
 
-        if ((resNormm / bNorm) < tolerance)
+        if ((resNorm / bNorm) < tolerance)
         {
             printf("Iterations: %d\n", i);
             break;
@@ -1133,9 +1132,9 @@ void solveSparseIterativeCGSingle(SparseMatrix *mat, Vector *B, double *X, doubl
         if (i % 100 == 0)
         {
             printf("i is %d ", i);
-            printf("res Norm is %e, ", resNormm);
+            printf("res Norm is %e, ", resNorm);
             printf("a is %e  beta is %e  ", alpha, beta);
-            printf("div is %e \n", resNormm / bNorm);
+            printf("div is %e \n", resNorm / bNorm);
         }
     }
     checkCudaErrors(cudaPeekAtLastError());
@@ -1155,6 +1154,62 @@ void solveSparseIterativeCGSingle(SparseMatrix *mat, Vector *B, double *X, doubl
     cusparseDestroy(sparseHandle);
 }
 
+void residual(SparseMatrix * mat, Vector* B, double *X){
+    int n = mat->size;
+    int nnz = mat->row_idx[n];
+
+    // INITIALIZE CUSOLVER AND CUBLAS
+    cusparseHandle_t sparseHandle = NULL;
+    cublasHandle_t blasHandle;
+    cudaStream_t stream = NULL;
+    // cusparseStatus_t status;
+
+    cusparseCreate(&sparseHandle);
+    cublasCreate(&blasHandle);
+    cudaStreamCreate(&stream);
+
+    double *Avalues, *rhs, *solution;
+    int *rowPtr, *colIdx;
+    checkCudaErrors(cudaMalloc((void **)&Avalues, nnz * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&solution, n * sizeof(double)));
+    checkCudaErrors(cudaMalloc((void **)&rhs, n * sizeof(double)));
+
+    checkCudaErrors(cudaMalloc((void **)&rowPtr, (n + 1) * sizeof(int)));
+    checkCudaErrors(cudaMalloc((void **)&colIdx, nnz * sizeof(int)));
+
+    checkCudaErrors(cudaMemcpy(rowPtr, mat->row_idx, (n + 1) * sizeof(int), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(colIdx, mat->col_idx, nnz * sizeof(int), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(Avalues, mat->values, nnz * sizeof(double), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(rhs, B->values, n * sizeof(double), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(solution, X, n * sizeof(double), cudaMemcpyHostToDevice));
+
+    cusparseSpMatDescr_t descrA;
+    cusparseCreateCsr(&descrA, n, n, nnz, rowPtr, colIdx, Avalues, CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
+
+    cusparseDnVecDescr_t descrX,  descrB;
+    cusparseCreateDnVec(&descrB, n, rhs, CUDA_R_64F);
+    cusparseCreateDnVec(&descrX, n, solution, CUDA_R_64F);
+
+    // INITIALIZE VARIABLES FOR LU SOLVE
+    size_t spMvBufferSize;
+    void *spMvBuffer;
+    double minusOne = -1.0;
+    double one = 1.0;
+    double bNorm;
+    cublasDnrm2(blasHandle, n, rhs, 1, &bNorm);
+    checkCudaErrors(cusparseSpMV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrA, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, &spMvBufferSize));
+    checkCudaErrors(cudaMalloc(&spMvBuffer, spMvBufferSize));
+    checkCudaErrors(cusparseSpMV(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrA, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, spMvBuffer));
+    
+    // RESIDUAL NORM
+    double resNorm;
+    cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
+    printf("Residual norm is %e\n", resNorm/bNorm);
+
+    cusparseDestroyDnVec(descrX);
+    cusparseDestroyDnVec(descrB);
+}
 int main(int argc, char **argv)
 {
     char *matrixName = (char *)malloc(40 * sizeof(char));
@@ -1192,8 +1247,9 @@ int main(int argc, char **argv)
     struct timeval start = tic();
 
     for (int i = 0; i < 1; i++)
-        solveSparseIterativeCG(sparse, B, X, 1e-12);
+        //solveSparseIterativeCG(sparse, B, X, 1e-12);
         //solveSparseDirect(sparse, B, X);
+        residual(sparse, B, Xcorrect->values);
     printf("Sparse time is %f\n", toc(start));
 
     saveVector(saveFile, B->size, X);
