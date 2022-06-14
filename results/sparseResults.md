@@ -70,17 +70,17 @@ _With single precision the algorithm did **not** converge_
 
 **n10k.bin**
 nrows: 31.287 and nnz: 2.467.643
-| mode | time | Residual Norm |
+| Mode | Time | Residual Norm |
 |---|---|---|
 | CPU (mkl) | 1sec | 1e-15 |
 |GPU iterative simple - Double | 50sec | 1e-12 |
-|GPU iterative simple - Single | - | - |
+|GPU iterative simple - Single | >120sec | - |
 |GPU direct | 35 sec | 0 |
 |GPU iterative GC Double | 3 sec | 1e-12 |
 |GPU iterative GC Single | 2.68 sec | 1e-12 |
 
 **na_bc.bin**
-| mode | time | Residual Norm |
+| Mode | Time | Residual Norm |
 |---|---|---|
 | CPU(mkl) | 10sec | 1e-8 |
 |GPU iterative simple Double | >120sec | - |
@@ -89,11 +89,12 @@ nrows: 31.287 and nnz: 2.467.643
 |GPU iterative GC Double | >120sec | - |
 |GPU iterative GC Single | >120sec | - |
 
+$|b| \over |r| = 5 \* 1e-8$
 **Note:** All gpu implementations cannot achieve convergence.
 
 **thermal.txt**
 nrows: 82.704 and nnz: 1.173.296
-| mode | time | Residual Norm |
+| Mode | Time | Residual Norm |
 | --- | --- | --- |
 | CPU(mkl) | 1.7 sec | 1e-7 |
 |GPU iterative simple Double | >120 sec | - |
