@@ -1154,7 +1154,7 @@ void solveSparseIterativeCGSingle(SparseMatrix *mat, Vector *B, double *X, doubl
     cusparseDestroy(sparseHandle);
 }
 
-void residual(SparseMatrix * mat, Vector* B, double *X){
+void test(SparseMatrix* mat, Vector* B){
     int n = mat->size;
     int nnz = mat->row_idx[n];
 
@@ -1181,34 +1181,53 @@ void residual(SparseMatrix * mat, Vector* B, double *X){
     checkCudaErrors(cudaMemcpy(colIdx, mat->col_idx, nnz * sizeof(int), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(Avalues, mat->values, nnz * sizeof(double), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(rhs, B->values, n * sizeof(double), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(solution, X, n * sizeof(double), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(solution,rhs, n * sizeof(double), cudaMemcpyDeviceToDevice));
+
+    struct timeval start = tic();
 
     cusparseSpMatDescr_t descrA;
     cusparseCreateCsr(&descrA, n, n, nnz, rowPtr, colIdx, Avalues, CUSPARSE_INDEX_32I,
                       CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F);
 
-    cusparseDnVecDescr_t descrX,  descrB;
+    cusparseDnVecDescr_t descrX, descrB;
     cusparseCreateDnVec(&descrB, n, rhs, CUDA_R_64F);
     cusparseCreateDnVec(&descrX, n, solution, CUDA_R_64F);
 
     // INITIALIZE VARIABLES FOR LU SOLVE
     size_t spMvBufferSize;
     void *spMvBuffer;
-    double minusOne = -1.0;
     double one = 1.0;
-    double bNorm;
-    cublasDnrm2(blasHandle, n, rhs, 1, &bNorm);
-    checkCudaErrors(cusparseSpMV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrA, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, &spMvBufferSize));
+    double zero = 0.0;
+
+    checkCudaErrors(cusparseSpMV_bufferSize(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &one, descrA, descrX, &zero, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, &spMvBufferSize));
     checkCudaErrors(cudaMalloc(&spMvBuffer, spMvBufferSize));
-    checkCudaErrors(cusparseSpMV(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &minusOne, descrA, descrX, &one, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, spMvBuffer));
-    
+    checkCudaErrors(cusparseSpMV(sparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &one, descrA, descrX, &zero, descrB, CUDA_R_64F, CUSPARSE_SPMV_CSR_ALG2, spMvBuffer));
+
     // RESIDUAL NORM
     double resNorm;
     cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
-    printf("Residual norm is %e\n", resNorm/bNorm);
+    cudaDeviceSynchronize();
+    printf("Residual norm is %e, time is %f\n", resNorm,toc(start));
+    
+    //restore B values
+    checkCudaErrors(cudaMemcpy(rhs, B->values, n * sizeof(double), cudaMemcpyHostToDevice));
+    start = tic();
+    int blocks = n / 64 + 1;
+    matrixVectorMult<<<blocks, 64>>>(n, nnz, Avalues, rowPtr, colIdx, rhs, solution);
+    //spmv_csr_vector_kernel<<<blocks, 64>>>(n, rowPtr, colIdx, Avalues, rhs, solution);
+    cudaMemcpy(rhs, solution, n * sizeof(double), cudaMemcpyDeviceToDevice);
+    cublasDnrm2(blasHandle, n, rhs, 1, &resNorm);
+    cudaDeviceSynchronize();
+    printf("Residual norm is %e, time is %f\n", resNorm, toc(start));
 
     cusparseDestroyDnVec(descrX);
     cusparseDestroyDnVec(descrB);
+    cudaFree(Avalues);
+    cudaFree(rhs);
+    cudaFree(rowPtr);
+    cudaFree(colIdx);
+    cudaFree(solution);
+    cudaFree(spMvBuffer);
 }
 int main(int argc, char **argv)
 {
@@ -1249,7 +1268,8 @@ int main(int argc, char **argv)
     for (int i = 0; i < 1; i++)
         //solveSparseIterativeCG(sparse, B, X, 1e-12);
         //solveSparseDirect(sparse, B, X);
-        residual(sparse, B, Xcorrect->values);
+        //residual(sparse, B, Xcorrect->values);
+        test(sparse, B);
     printf("Sparse time is %f\n", toc(start));
 
     saveVector(saveFile, B->size, X);
