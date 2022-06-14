@@ -78,50 +78,98 @@ void readSparseMMMatrix(char *file_path, SparseMatrix *Mtrx)
 
 void readSystem(char *file_path, SparseMatrix *Mtrx, Vector *B, Vector *X)
 {
-    FILE *ptr = fopen(file_path, "rb");
+    FILE *ptr;
+    int nrows, nnz;
+    double *matrixValues, *vectorValuesB, *vectorValuesX;
+    int64_t *row_ptr64;
+    int *col_idx, *row_ptr;
+
+    if (strstr(file_path, ".bin"))
+    {
+        ptr = fopen(file_path, "rb");
+
+        fread(&nrows, sizeof(int), 1, ptr);
+        fread(&nnz, sizeof(int), 1, ptr);
+
+        printf("nrows: %d and nnz: %d\n", nrows, nnz);
+        Mtrx->size = nrows;
+        B->size = nrows;
+        X->size = nrows;
+
+        matrixValues = (double *)malloc(nnz * sizeof(double));
+        vectorValuesB = (double *)malloc(nrows * sizeof(double));
+        vectorValuesX = (double *)malloc(nrows * sizeof(double));
+        row_ptr64 = (int64_t *)malloc((nrows + 1) * sizeof(int64_t));
+        col_idx = (int *)malloc(nnz * sizeof(int));
+
+        size_t ret = fread(row_ptr64, sizeof(int64_t), nrows + 1, ptr);
+        if (ret != nrows + 1)
+            printf("Error in read: %ld\n", ret);
+
+        ret = fread(col_idx, sizeof(int), nnz, ptr);
+        if (ret != nnz)
+            printf("Error in read: %ld\n", ret);
+
+        ret = fread(matrixValues, sizeof(double), nnz, ptr);
+        if (ret != nnz)
+            printf("Error in read: %ld\n", ret);
+
+        ret = fread(vectorValuesB, sizeof(double), nrows, ptr);
+        if (ret != nrows)
+            printf("Error in read: %ld\n", ret);
+
+        ret = fread(vectorValuesX, sizeof(double), nrows, ptr);
+        if (ret != nrows)
+            printf("Error in read: %ld\n", ret);
+
+        row_ptr = (int *)malloc((nrows + 1) * sizeof(int));
+        for (int i = 0; i < nrows + 1; i++)
+            row_ptr[i] = row_ptr64[i];
+    }
+
+    else if (strstr(file_path, ".txt"))
+    {
+        ptr = fopen(file_path, "r");
+
+        fscanf(ptr, "%d", &nrows);
+        fscanf(ptr, "%d", &nnz);
+
+        printf("nrows: %d and nnz: %d\n", nrows, nnz);
+        Mtrx->size = nrows;
+        B->size = nrows;
+        X->size = nrows;
+
+        matrixValues = (double *)malloc(nnz * sizeof(double));
+        vectorValuesB = (double *)malloc(nrows * sizeof(double));
+        vectorValuesX = (double *)malloc(nrows * sizeof(double));
+        row_ptr64 = (int64_t *)malloc((nrows + 1) * sizeof(int64_t));
+        col_idx = (int *)malloc(nnz * sizeof(int));
+
+        for (int i = 0; i < nrows + 1; i++)
+            fscanf(ptr, "%ld", &row_ptr64[i]);
+
+        for (int i = 0; i < nnz ; i++)
+            fscanf(ptr, "%d", &col_idx[i]);
+
+        for (int i = 0; i < nnz; i++)
+            fscanf(ptr, "%lf", &matrixValues[i]);
+
+        for (int i = 0; i < nrows; i++)
+            fscanf(ptr, "%lf", &vectorValuesB[i]);
+
+        for (int i = 0; i < nrows; i++)
+            fscanf(ptr, "%lf", &vectorValuesX[i]);
+
+        row_ptr = (int *)malloc((nrows + 1) * sizeof(int));
+        for (int i = 0; i < nrows + 1; i++)
+            row_ptr[i] = row_ptr64[i];
+    }
+
     if (ptr == NULL)
     {
         printf("Error finding file\n");
         return;
     }
-    int nrows, nnz;
-    fread(&nrows, sizeof(int), 1, ptr);
-    fread(&nnz, sizeof(int), 1, ptr);
-
-    printf("nrows: %d and nnz: %d\n", nrows, nnz);
-    Mtrx->size = nrows;
-    B->size = nrows;
-    X->size = nrows;
-
-    double *matrixValues = (double *)malloc(nnz * sizeof(double));
-    double *vectorValuesB = (double *)malloc(nrows * sizeof(double));
-    double *vectorValuesX = (double *)malloc(nrows * sizeof(double));
-    int64_t *row_ptr64 = (int64_t *)malloc((nrows + 1) * sizeof(int64_t));
-    int *col_idx = (int *)malloc(nnz * sizeof(int));
-
-    size_t ret = fread(row_ptr64, sizeof(int64_t), nrows + 1, ptr);
-    if (ret != nrows + 1)
-        printf("Error in read: %ld\n", ret);
-
-    ret = fread(col_idx, sizeof(int), nnz, ptr);
-    if (ret != nnz)
-        printf("Error in read: %ld\n", ret);
-
-    ret = fread(matrixValues, sizeof(double), nnz, ptr);
-    if (ret != nnz)
-        printf("Error in read: %ld\n", ret);
-
-    ret = fread(vectorValuesB, sizeof(double), nrows, ptr);
-    if (ret != nrows)
-        printf("Error in read: %ld\n", ret);
-
-    ret = fread(vectorValuesX, sizeof(double), nrows, ptr);
-    if (ret != nrows)
-        printf("Error in read: %ld\n", ret);
-
-    int *row_ptr = (int *)malloc((nrows + 1) * sizeof(int));
-    for (int i = 0; i < nrows + 1; i++)
-        row_ptr[i] = row_ptr64[i];
 
     Mtrx->values = matrixValues;
     Mtrx->row_idx = row_ptr;
