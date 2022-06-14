@@ -44,7 +44,6 @@ Norm is residual norm divided by right-hand side norm
 | 1e-12 | 191                 | 3.5 s            | 202               | 2.69 s          |
 | 1e-13 | 200                 | 3.61 s           | 212               | 2.71 s          |
 
-For na_bc sort and ILU time is 2.15sec (323.856x323.856 and 13.180.992 nnz)
 
 _Sorting the matrix before **reduces** the total iterations_
 
@@ -69,23 +68,26 @@ _With single precision the algorithm did **not** converge_
 ### CPU vs GPU Times
 
 **n10k.bin**
+
 nrows: 31.287 and nnz: 2.467.643
 | Mode | Time | Residual Norm |
 |---|---|---|
 | CPU (mkl) | 1sec | 1e-15 |
+|GPU direct | 35 sec | 0 |
 |GPU iterative simple - Double | 50sec | 1e-12 |
 |GPU iterative simple - Single | >120sec | - |
-|GPU direct | 35 sec | 0 |
 |GPU iterative GC Double | 3 sec | 1e-12 |
 |GPU iterative GC Single | 2.68 sec | 1e-12 |
 
 **na_bc.bin**
+
+nrows: 323.856 and nnz: 13.180.992
 | Mode | Time | Residual Norm |
 |---|---|---|
 | CPU(mkl) | 10sec | 1e-8 |
+|GPU direct | >120sec | - |
 |GPU iterative simple Double | >120sec | - |
 |GPU iterative simple Single | >120sec | - |
-|GPU direct | >120sec | - |
 |GPU iterative GC Double | >120sec | - |
 |GPU iterative GC Single | >120sec | - |
 
@@ -95,12 +97,13 @@ ${|b| \over |r|} = 5 \* 1e-8$
 **Note:** All gpu implementations cannot achieve convergence.
 
 **thermal.txt**
+
 nrows: 82.704 and nnz: 1.173.296
 | Mode | Time | Residual Norm |
 | --- | --- | --- |
 | CPU(mkl) | 1.7 sec | 1e-7 |
+|GPU direct | 61.9 sec | 0 |
 |GPU iterative simple Double | >120 sec | - |
 |GPU iterative simple Single | >120 sec | - |
-|GPU direct | 61.9 sec | 0 |
 |GPU iterative GC Double| 2.22 sec | 1e-12 |
 |GPU iterative GC Single| >120sec | - |
