@@ -90,6 +90,8 @@ nrows: 31.287 and nnz: 2.467.643
 |GPU iterative GC Single | >120sec | - |
 
 ${|b| \over |r|} = 5 \* 1e-8$
+
+
 **Note:** All gpu implementations cannot achieve convergence.
 
 **thermal.txt**
