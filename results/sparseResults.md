@@ -16,12 +16,12 @@ Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.h
   3. If (i == 0)
      - p = z
   4. else
-     - $ beta = {p*i \over p*{i-1}} $
-     - p = z + beta \* p
+     - $beta = {p*i \over p*{i-1}}$
+     - $p = z + beta \* p$
   5. Compute **q = Ap** (**double**)
-  6. a = $ p_i \over p^Tq $
-  7. x += ap
-  8. r -= aq
+  6. a = $p_i \over p^Tq$
+  7. $x += ap$
+  8. $r -= aq$
 - Transfer solution to host memory
 
 ## Sparse GC Results
@@ -44,7 +44,7 @@ Norm is residual norm divided by right-hand side norm
 | 1e-12 | 10806      | 56.33 s  | 191            | 3.5 s        |
 | 1e-13 | 12006      | 62.43 s  | 200            | 3.61 s       |
 
-For na_bc sort and ILU time is 2.15 (323.856x323.856 and 13.180.992 nnz)
+For na_bc sort and ILU time is 2.15sec (323.856x323.856 and 13.180.992 nnz)
 
 _Sorting the matrix before **reduces** the total iterations_
 
