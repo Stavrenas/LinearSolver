@@ -16,7 +16,7 @@ Nvidia white [paper](https://docs.nvidia.com/cuda/incomplete-lu-cholesky/index.h
   3. If (i == 0)
      - p = z
   4. else
-     - $beta = {p*i \over p*{i-1}}$
+     - $beta = {p_i \over p_{i-1}}$
      - $p = z + beta \* p$
   5. Compute **q = Ap** (**double**)
   6. a = $p_i \over p^Tq$
