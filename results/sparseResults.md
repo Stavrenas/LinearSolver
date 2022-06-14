@@ -32,17 +32,17 @@ Sort and ILU time is 1.35 sec.
 
 Norm is residual norm divided by right-hand side norm
 
-#### Naive approach vs GC
+#### GC single vs double
 
-| Norm  | Iterations | Run time | Iterations(GC) | Run time(GC) |
-| ----- | ---------- | -------- | -------------- | ------------ |
-| 1e-7  | 4806       | 26.18 s  | 137            | 3.13s        |
-| 1e-8  | 6006       | 32.37 s  | 148            | 3.13 s       |
-| 1e-9  | 7206       | 38.42 s  | 160            | 3.13 s       |
-| 1e-10 | 8406       | 44.48 s  | 174            | 3.28 s       |
-| 1e-11 | 9606       | 50.59 s  | 182            | 2.98 s       |
-| 1e-12 | 10806      | 56.33 s  | 191            | 3.5 s        |
-| 1e-13 | 12006      | 62.43 s  | 200            | 3.61 s       |
+| Norm  | Iterations (Double) | Run time(Double) | Iterations(Float) | Run time(Float) |
+| ----- | ------------------- | ---------------- | ----------------- | --------------- |
+| 1e-7  | 137                 | 3.13s            | 126               | 2.46 s          |
+| 1e-8  | 148                 | 3.13 s           | 140               | 2.51 s          |
+| 1e-9  | 160                 | 3.13 s           | 150               | 2.54 s          |
+| 1e-10 | 174                 | 3.28 s           | 165               | 2.58s           |
+| 1e-11 | 182                 | 2.98 s           | 191               | 2.65 s          |
+| 1e-12 | 191                 | 3.5 s            | 202               | 2.69 s          |
+| 1e-13 | 200                 | 3.61 s           | 212               | 2.71 s          |
 
 For na_bc sort and ILU time is 2.15sec (323.856x323.856 and 13.180.992 nnz)
 
@@ -69,25 +69,35 @@ _With single precision the algorithm did **not** converge_
 ### CPU vs GPU Times
 
 **n10k.bin**
+nrows: 31.287 and nnz: 2.467.643
 | mode | time | Residual Norm |
 |---|---|---|
 | CPU (mkl) | 1sec | 1e-15 |
-|GPU iterative simple | 50sec | 1e-12 |
+|GPU iterative simple - Double | 50sec | 1e-12 |
+|GPU iterative simple - Single | - | - |
 |GPU direct | 35 sec | 0 |
-|GPU iterative GC | 3 sec | 1e-12 |
+|GPU iterative GC Double | 3 sec | 1e-12 |
+|GPU iterative GC Single | 2.68 sec | 1e-12 |
 
 **na_bc.bin**
 | mode | time | Residual Norm |
 |---|---|---|
 | CPU(mkl) | 10sec | 1e-8 |
-|GPU iterative simple | - | - |
-|GPU direct | - | - |
-|GPU iterative GC | - | - |
+|GPU iterative simple Double | >120sec | - |
+|GPU iterative simple Single | >120sec | - |
+|GPU direct | >120sec | - |
+|GPU iterative GC Double | >120sec | - |
+|GPU iterative GC Single | >120sec | - |
 
-**Note:** All gpu implementations cannot achieve congergence.
+**Note:** All gpu implementations cannot achieve convergence.
 
-Maybe because "The preconditioner matrix M has to be symmetric positive-definite and fixed" ?
-
-<!-- ![alt text](/results/iters.png)
-
-![alt text](/results/run%20time.png) -->
+**thermal.txt**
+nrows: 82.704 and nnz: 1.173.296
+| mode | time | Residual Norm |
+| --- | --- | --- |
+| CPU(mkl) | 1.7 sec | 1e-7 |
+|GPU iterative simple Double | >120 sec | - |
+|GPU iterative simple Single | >120 sec | - |
+|GPU direct | 61.9 sec | 0 |
+|GPU iterative GC Double| 2.22 sec | 1e-12 |
+|GPU iterative GC Single| >120sec | - |
